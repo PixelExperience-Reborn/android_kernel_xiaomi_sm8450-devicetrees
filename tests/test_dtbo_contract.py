@@ -50,6 +50,16 @@ class DtboContractTests(unittest.TestCase):
                     "overlays_applied_to_all_compatible_bases"):
             self.assertFalse(t[key])
 
+    def test_modern_compiler_does_not_substitute_for_real_dtbo_compilation(self):
+        p = self.cfg["trial_lf_source"]["diagnostic_build_pipeline"]
+        self.assertEqual(p["kernel_source_compiler"], "clang-r614150")
+        self.assertEqual(p["google_compiler_commit"],
+                         "c9ed23e2ba198658b630d4b10e09fa980cd43119")
+        self.assertIsNone(p["host_dtc_revision"])
+        self.assertIsNone(p["dtbo_tools_revision"])
+        self.assertFalse(p["physical_overlay_application_qualified"])
+        self.assertFalse(p["shipping_dtbo_img_generated"])
+
     def test_no_unverified_device_tree_is_accepted(self):
         q = self.cfg["required_qualification"]
         for key in ("kernel_commit", "module_commit", "kernel_config_hash"):
