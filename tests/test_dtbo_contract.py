@@ -37,6 +37,19 @@ class DtboContractTests(unittest.TestCase):
         self.assertEqual(r["fingerprint_compatible"], "goodix,fingerprint")
         self.assertTrue(r["touch_and_fingerprint_are_independent"])
 
+    def test_lf_trial_dt_source_is_pinned_to_same_kernel(self):
+        t = self.cfg["trial_lf_source"]
+        self.assertEqual(t["repository"], "LF52406/android_kernel_xiaomi_sm8450-devicetrees")
+        self.assertEqual(t["commit_sha"], "99f1330d8dce0c80de5a19f425d0a118b2eb7fe3")
+        self.assertEqual(t["root_tree_sha"], "fcbd44856a59364a8af9ebc72546ea8ecab0f77b")
+        self.assertEqual(t["expected_kernel_commit"], "283772ceb84491fd446e340fd211d45fb9dd9a36")
+        self.assertEqual(t["board_blob_sha"], "59cb230a704b67b3f8800682937bbec2a9e09f9c")
+        self.assertEqual(t["board_overlay_base_dtbs"], ["cape.dtb", "cape-v2.dtb", "capep.dtb"])
+        self.assertEqual(t["status"], "trial_source_only_not_copied_or_compiled")
+        for key in ("physical_hardware_board_revision_verified", "device_tree_compiled",
+                    "overlays_applied_to_all_compatible_bases"):
+            self.assertFalse(t[key])
+
     def test_no_unverified_device_tree_is_accepted(self):
         q = self.cfg["required_qualification"]
         for key in ("kernel_commit", "module_commit", "kernel_config_hash"):
