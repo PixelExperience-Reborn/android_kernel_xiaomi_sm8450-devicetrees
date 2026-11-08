@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "project": "PixelExperience-Reborn",
+  "android_base": "AOSP 17",
+  "device": "mondrian",
+  "soc": "SM8475",
+  "build_status": "not_buildable",
+  "reference_source": {
+    "repository": "LineageOS/android_kernel_xiaomi_sm8450-devicetrees",
+    "ref": "lineage-24.0",
+    "commit_sha": "2e649a7f3e762903eedad43d8256b91e28b512d8",
+    "tree_sha": "791739007d79dc9e2053bdd074a85f7bd5ff0c31",
+    "status": "read_only_not_selected"
+  },
+  "verified_reference_files": [
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "blob_sha": "59cb230a704b67b3f8800682937bbec2a9e09f9c",
+      "role": "board_touch_fingerprint"
+    },
+    {
+      "path": "qcom/Makefile",
+      "blob_sha": "44e2f2371a4e1667408a7441c8d431fd0d81e51b",
+      "role": "base_dtbo_targets"
+    },
+    {
+      "path": "qcom/display/Kbuild",
+      "blob_sha": "cf5c2fa8ff025fb7ad99adc6175dd75242414190",
+      "role": "display_dtbo_targets"
+    },
+    {
+      "path": "qcom/display/display/mondrian-sde-display-mtp.dtsi",
+      "blob_sha": "8f53907e4cb6b5b22906dd2ff356a547b55dc374",
+      "role": "panel_include_graph"
+    },
+    {
+      "path": "qcom/camera/config/waipio.mk",
+      "blob_sha": "294846140b079c872d64d507680a9e2d2302254e",
+      "role": "camera_dtbo_targets"
+    }
+  ],
+  "expected_reference": {
+    "soc_dtbs": [
+      "cape.dtb",
+      "cape-v2.dtb",
+      "capep.dtb"
+    ],
+    "mondrian_board_dtbo": "mondrian-sm8475-pm8008-overlay.dtbo",
+    "display_dtbo": "mondrian-sde-display-mtp-overlay.dtbo",
+    "camera_dtbo": "mondrian-sm8475-camera-sensor.dtbo",
+    "panel_include": "dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi",
+    "touch_spi_compatible": "goodix,gt9916S",
+    "manufacturer_spi_compatible": "goodix,brl-d",
+    "touch_firmware": "goodix_firmware_m11a.bin",
+    "touch_config": "goodix_cfg_group_m11a.bin",
+    "fingerprint_compatible": "goodix,fingerprint",
+    "touch_and_fingerprint_are_independent": true
+  },
+  "required_qualification": {
+    "kernel_commit": null,
+    "module_commit": null,
+    "kernel_config_hash": null,
+    "dtc_build_proven": false,
+    "fdtoverlay_all_bases_proven": false,
+    "board_id_hardware_confirmed": false,
+    "panel_revision_hardware_confirmed": false,
+    "touch_fw_hardware_confirmed": false,
+    "bootloader_dtbo_selection_proven": false,
+    "boot_proven": false,
+    "udfps_proven": false
+  },
+  "exclusions": [
+    "unverified binary DTBO",
+    "ROM-specific LineageOS product dependencies",
+    "FM radio"
+  ],
+  "trial_lf_source": {
+    "repository": "LF52406/android_kernel_xiaomi_sm8450-devicetrees",
+    "commit_sha": "99f1330d8dce0c80de5a19f425d0a118b2eb7fe3",
+    "root_tree_sha": "fcbd44856a59364a8af9ebc72546ea8ecab0f77b",
+    "reference_branch": "lineage-24.0",
+    "status": "trial_source_only_not_copied_or_compiled",
+    "expected_kernel_repository": "LF52406/android_kernel_xiaomi_sm8450",
+    "expected_kernel_commit": "283772ceb84491fd446e340fd211d45fb9dd9a36",
+    "board_blob_sha": "59cb230a704b67b3f8800682937bbec2a9e09f9c",
+    "board_overlay_base_dtbs": [
+      "cape.dtb",
+      "cape-v2.dtb",
+      "capep.dtb"
+    ],
+    "display_overlay": "mondrian-sde-display-mtp-overlay.dtbo",
+    "camera_overlay": "mondrian-sm8475-camera-sensor.dtbo",
+    "physical_hardware_board_revision_verified": false,
+    "device_tree_compiled": false,
+    "overlays_applied_to_all_compatible_bases": false,
+    "diagnostic_build_pipeline": {
+      "kernel_source_compiler": "clang-r614150",
+      "google_compiler_commit": "c9ed23e2ba198658b630d4b10e09fa980cd43119",
+      "host_dtc_revision": null,
+      "dtbo_tools_revision": null,
+      "physical_overlay_application_qualified": false,
+      "shipping_dtbo_img_generated": false,
+      "note": "DTC is a separate dependency; Clang23 availability alone does not compile DTBO or qualify cape board overlays"
+    }
+  }
+}

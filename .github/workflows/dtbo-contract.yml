@@ -1,0 +1,12 @@
+name: Mondrian SM8475 DTBO contract (source only)
+on:
+  push:
+    branches: [seventeen, 'audit/**']
+  pull_request:
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate board, panel, UDFPS and DTBO gates
+        run: python3 -m unittest discover -s tests -v
