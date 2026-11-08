@@ -73,5 +73,25 @@
     "unverified binary DTBO",
     "ROM-specific LineageOS product dependencies",
     "FM radio"
-  ]
+  ],
+  "trial_lf_source": {
+    "repository": "LF52406/android_kernel_xiaomi_sm8450-devicetrees",
+    "commit_sha": "99f1330d8dce0c80de5a19f425d0a118b2eb7fe3",
+    "root_tree_sha": "fcbd44856a59364a8af9ebc72546ea8ecab0f77b",
+    "reference_branch": "lineage-24.0",
+    "status": "trial_source_only_not_copied_or_compiled",
+    "expected_kernel_repository": "LF52406/android_kernel_xiaomi_sm8450",
+    "expected_kernel_commit": "283772ceb84491fd446e340fd211d45fb9dd9a36",
+    "board_blob_sha": "59cb230a704b67b3f8800682937bbec2a9e09f9c",
+    "board_overlay_base_dtbs": [
+      "cape.dtb",
+      "cape-v2.dtb",
+      "capep.dtb"
+    ],
+    "display_overlay": "mondrian-sde-display-mtp-overlay.dtbo",
+    "camera_overlay": "mondrian-sm8475-camera-sensor.dtbo",
+    "physical_hardware_board_revision_verified": false,
+    "device_tree_compiled": false,
+    "overlays_applied_to_all_compatible_bases": false
+  }
 }
