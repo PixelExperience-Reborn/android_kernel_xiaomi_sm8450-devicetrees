@@ -92,6 +92,15 @@
     "camera_overlay": "mondrian-sm8475-camera-sensor.dtbo",
     "physical_hardware_board_revision_verified": false,
     "device_tree_compiled": false,
-    "overlays_applied_to_all_compatible_bases": false
+    "overlays_applied_to_all_compatible_bases": false,
+    "diagnostic_build_pipeline": {
+      "kernel_source_compiler": "clang-r614150",
+      "google_compiler_commit": "c9ed23e2ba198658b630d4b10e09fa980cd43119",
+      "host_dtc_revision": null,
+      "dtbo_tools_revision": null,
+      "physical_overlay_application_qualified": false,
+      "shipping_dtbo_img_generated": false,
+      "note": "DTC is a separate dependency; Clang23 availability alone does not compile DTBO or qualify cape board overlays"
+    }
   }
 }
