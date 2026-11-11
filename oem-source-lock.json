@@ -7,7 +7,7 @@
   "source_commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
   "selected_kernel_repository": "PixelExperience-Reborn/android_kernel_xiaomi_sm8450",
   "selected_kernel_commit": "2466406b9beac724960b0c88e6e794421d0466e7",
-  "status": "oem_board_sources_staged_dtbo_not_buildable",
+  "status": "oem_mondrian_board_dtb_diagnostic_compiled_not_ship_ready",
   "original_git_blobs": {
     "qcom/mondrian-sm8475-pm8008-overlay.dts": "46e60415b9287309e5290a6d32654f14d2b2ab42",
     "qcom/mondrian-sm8475.dtsi": "bd4bb92b7e85b003d41589a482792c88965d74ef",
@@ -38,18 +38,20 @@
     }
   ],
   "unresolved": [
-    "Qualcomm Cape base DTS and PMIC include closure",
-    "Qualcomm camera, display and audio overlay subtrees",
-    "DTBO build+fdtoverlay against cape/cape-v2/capep",
-    "Verify Goodix firmware/config file name and blobs",
-    "Panel notifier phandle/suspend-resume/ESD/UDFPS",
-    "KMI matched external modules and physical boot"
+    "Compile and apply M11A display, mondrian camera and audio overlays from matching vendor/Qualcomm source",
+    "Verify actual bootloader board-id/SKU selector and DTBO image packaging",
+    "Confirm dynamic firmware and vendor partition staging for AOSP17",
+    "Validate panel notifier, suspend/resume, ESD, UDFPS and power management on real hardware",
+    "Compile and qualify the required Qualcomm external modules against OEM Module.symvers",
+    "Hardware boot, vendor_boot/vendor_dlkm integration, VINTF and SELinux"
   ],
   "qualifications": {
-    "dtbo_compiled": false,
-    "overlays_applied": false,
+    "dtbo_compiled": true,
+    "overlays_applied": true,
     "firmware_resolved": false,
-    "hardware_booted": false
+    "hardware_booted": false,
+    "display_camera_overlays_compiled": false,
+    "hardware_board_revision_verified": false
   },
   "vendor_firmware_reference": {
     "repository": "LF52406/proprietary_vendor_xiaomi_mondrian",
@@ -60,5 +62,19 @@
       "proprietary/vendor/firmware/goodix_cfg_group_m11a.bin": "b843685cb2a3a356c2f6733e0233bbbd75e06c95"
     },
     "purpose": "Source cross-check only; no firmware binary imported and no AOSP17 packaging claim."
+  },
+  "diagnostic_evidence": {
+    "kernel_commit": "2466406b9beac724960b0c88e6e794421d0466e7",
+    "oem_source_commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
+    "checked_bases": [
+      "cape",
+      "cape-v2",
+      "capep"
+    ],
+    "output": "three Cape base DTBs and mondrian-sm8475-pm8008-overlay.dtbo",
+    "fdt_overlay_applied_to_each": true,
+    "ci_run_url": "https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43010141003",
+    "compiled_artifact_id": 13850121963,
+    "production_dtbo_img_built": false
   }
 }

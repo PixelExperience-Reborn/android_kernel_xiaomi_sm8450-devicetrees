@@ -25,7 +25,7 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertEqual(len(d["original_git_blobs"]), 7)
         self.assertEqual(len(d["adaptations"]), 3)
 
-    def test_exact_oem_blobs_with_one_justified_adaptation(self):
+    def test_exact_oem_blobs_with_only_three_declared_adaptations(self):
         for path, expected in self.lock["original_git_blobs"].items():
             raw = (ROOT / path).read_bytes()
             for adaptation in self.lock["adaptations"]:
@@ -48,10 +48,23 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertIn('<&tlmm 21', board)
         self.assertIn('<&tlmm 20', board)
 
-    def test_never_fake_dtbo_completion(self):
-        self.assertEqual(self.lock["status"], "oem_board_sources_staged_dtbo_not_buildable")
+    def test_compiled_board_overlay_is_only_diagnostic(self):
+        self.assertEqual(self.lock["status"],
+                         "oem_mondrian_board_dtb_diagnostic_compiled_not_ship_ready")
+        gates = self.lock["qualifications"]
+        self.assertTrue(gates["dtbo_compiled"])
+        self.assertTrue(gates["overlays_applied"])
+        self.assertFalse(gates["display_camera_overlays_compiled"])
+        self.assertFalse(gates["firmware_resolved"])
+        self.assertFalse(gates["hardware_board_revision_verified"])
+        self.assertFalse(gates["hardware_booted"])
+        evidence = self.lock["diagnostic_evidence"]
+        self.assertEqual(evidence["checked_bases"], ["cape", "cape-v2", "capep"])
+        self.assertTrue(evidence["fdt_overlay_applied_to_each"])
+        self.assertFalse(evidence["production_dtbo_img_built"])
+        self.assertEqual(evidence["kernel_commit"],
+                         self.lock["selected_kernel_commit"])
         self.assertGreaterEqual(len(self.lock["unresolved"]), 5)
-        self.assertFalse(any(self.lock["qualifications"].values()))
 
 
 if __name__ == "__main__":
