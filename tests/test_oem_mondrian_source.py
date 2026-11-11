@@ -23,13 +23,14 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertEqual(d["android_base"], "AOSP 17")
         self.assertEqual(d["source_repository"], "MiCode/kernel_devicetree")
         self.assertEqual(len(d["original_git_blobs"]), 7)
-        self.assertEqual(len(d["adaptations"]), 1)
+        self.assertEqual(len(d["adaptations"]), 3)
 
     def test_exact_oem_blobs_with_one_justified_adaptation(self):
-        adaptation = self.lock["adaptations"][0]
         for path, expected in self.lock["original_git_blobs"].items():
             raw = (ROOT / path).read_bytes()
-            if path == adaptation["path"]:
+            for adaptation in self.lock["adaptations"]:
+                if path != adaptation["path"]:
+                    continue
                 a = adaptation["pe_binding"].encode()
                 b = adaptation["oem_binding"].encode()
                 self.assertEqual(raw.count(a), 1, path)
@@ -42,8 +43,8 @@ class MondrianOemDtsTests(unittest.TestCase):
         board = (ROOT / "qcom/mondrian-sm8475.dtsi").read_text()
         self.assertIn('xiaomi,miboard-id = <0xE 0>;', root)
         self.assertIn('compatible = "goodix,gt9916S";', board)
-        self.assertIn('goodix,firmware-name = "goodix_firmware_m11a";', board)
-        self.assertIn('goodix,config-name = "goodix_cfg_group_m11a";', board)
+        self.assertIn('goodix,firmware-name = "goodix_firmware_m11a.bin";', board)
+        self.assertIn('goodix,config-name = "goodix_cfg_group_m11a.bin";', board)
         self.assertIn('<&tlmm 21', board)
         self.assertIn('<&tlmm 20', board)
 

@@ -23,6 +23,18 @@
       "oem_binding": "compatible = \"xiaomi,m11a-spi\";",
       "pe_binding": "compatible = \"goodix,gt9916S\";",
       "reason": "The selected OEM-derived Goodix Berlin SPI driver's OF table includes goodix,gt9916S but not xiaomi,m11a-spi."
+    },
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "oem_binding": "goodix,firmware-name = \"goodix_firmware_m11a\";",
+      "pe_binding": "goodix,firmware-name = \"goodix_firmware_m11a.bin\";",
+      "reason": "For Goodix platform id 0 request_firmware receives the exact DT firmware string; the mondrian vendor file has .bin."
+    },
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "oem_binding": "goodix,config-name = \"goodix_cfg_group_m11a\";",
+      "pe_binding": "goodix,config-name = \"goodix_cfg_group_m11a.bin\";",
+      "reason": "For Goodix platform id 0 request_firmware receives the exact DT config string; the mondrian vendor file has .bin."
     }
   ],
   "unresolved": [
@@ -38,5 +50,15 @@
     "overlays_applied": false,
     "firmware_resolved": false,
     "hardware_booted": false
+  },
+  "vendor_firmware_reference": {
+    "repository": "LF52406/proprietary_vendor_xiaomi_mondrian",
+    "ref": "lineage-24.0",
+    "commit": "3ccf06a7c4f6543a2a8b0811e8843514a624b56b",
+    "files": {
+      "proprietary/vendor/firmware/goodix_firmware_m11a.bin": "2b2f3834628da1b6bee1b7b23d847d7827be83ca",
+      "proprietary/vendor/firmware/goodix_cfg_group_m11a.bin": "b843685cb2a3a356c2f6733e0233bbbd75e06c95"
+    },
+    "purpose": "Source cross-check only; no firmware binary imported and no AOSP17 packaging claim."
   }
 }

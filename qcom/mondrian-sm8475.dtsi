@@ -46,8 +46,8 @@
 		goodix,panel-max-y = <32000>;
 		goodix,panel-max-w = <255>;
 		goodix,panel-max-p = <4096>;
-		goodix,firmware-name = "goodix_firmware_m11a";
-		goodix,config-name = "goodix_cfg_group_m11a";
+		goodix,firmware-name = "goodix_firmware_m11a.bin";
+		goodix,config-name = "goodix_cfg_group_m11a.bin";
 		goodix,touch-expert-array = <2 3 2 2
 					     4 3 3 2
 					     3 3 4 2>;
