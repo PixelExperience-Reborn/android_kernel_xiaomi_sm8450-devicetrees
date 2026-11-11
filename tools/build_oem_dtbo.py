@@ -74,6 +74,17 @@ def main():
 
     bases = [compile_one(name, False) for name in BASES]
     overlay = compile_one(BOARD, True)
+    overlay_model = subprocess.check_output(
+        ["fdtget", "-t", "s", str(overlay), "/", "model"], text=True
+    ).strip()
+    if "Mondrian" not in overlay_model or "SM8475" not in overlay_model:
+        raise RuntimeError(f"Incorrect board overlay identity: {overlay_model}")
+    board_id = subprocess.check_output(
+        ["fdtget", "-t", "x", str(overlay), "/", "xiaomi,miboard-id"],
+        text=True
+    ).strip()
+    if [int(x, 16) for x in board_id.split()] != [0xE, 0]:
+        raise RuntimeError(f"Unexpected mondrian miboard-id: {board_id}")
     for base in bases:
         merged = dest / (base.stem + "-mondrian-merged.dtb")
         run(["fdtoverlay", "-i", base, "-o", merged, overlay])
@@ -82,8 +93,10 @@ def main():
         model = subprocess.check_output(
             ["fdtget", "-t", "s", str(merged), "/", "model"], text=True
         ).strip()
-        if "Mondrian" not in model or "SM8475" not in model:
-            raise RuntimeError(f"Incorrect target board model in {merged}: {model}")
+        # Overlay root metadata is for bootloader selection and is not
+        # automatically copied over the root 'model' of a Cape base DTB.
+        if "Cape" not in model:
+            raise RuntimeError(f"Wrong base board used in merged DTB: {model}")
         expanded = out / (base.stem + "-mondrian-merged.dts")
         run(["dtc", "-I", "dtb", "-O", "dts", "-o", expanded, merged])
         dt = expanded.read_text()
