@@ -35,6 +35,16 @@ jobs:
           sudo apt-get install -y --no-install-recommends device-tree-compiler gcc
       - name: Compile Cape DTBs and mondrian board overlay
         run: python3 tools/build_oem_dtbo.py --kernel kernel --out /tmp/mondrian-dt
+      - name: Publish diagnostic compiled DTBs and board overlays
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-oem-board-dtb-diagnostic
+          path: |
+            /tmp/mondrian-dt/images/*.dtb
+            /tmp/mondrian-dt/images/*.dtbo
+            /tmp/mondrian-dt/dtbo-diagnostic-evidence.json
+          retention-days: 7
       - name: Retain preprocessed DTS if build fails
         if: failure()
         uses: actions/upload-artifact@v4

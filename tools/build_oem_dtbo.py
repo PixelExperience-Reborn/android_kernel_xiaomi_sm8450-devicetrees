@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile Xiaomi mondrian DTB/DTBO against a selected PE-Reborn OEM kernel."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -30,7 +31,12 @@ def main():
     oem_head = subprocess.check_output(["git", "-C", str(oem), "rev-parse", "HEAD"], text=True).strip()
     if oem_head != lock["source_commit"]:
         parser.error(f"Xiaomi source SHA mismatch: {oem_head}")
-    for tool in ("cpp", "dtc", "fdtoverlay"):
+    kernel_head = subprocess.check_output(
+        ["git", "-C", str(kernel), "rev-parse", "HEAD"], text=True
+    ).strip()
+    if kernel_head != lock["selected_kernel_commit"]:
+        parser.error(f"Kernel commit mismatch: {kernel_head}")
+    for tool in ("cpp", "dtc", "fdtoverlay", "fdtget"):
         if not shutil.which(tool):
             parser.error(f"Required tool is missing: {tool}")
     stage = out / "source"
@@ -73,6 +79,37 @@ def main():
         run(["fdtoverlay", "-i", base, "-o", merged, overlay])
         if not merged.is_file() or merged.stat().st_size < base.stat().st_size:
             raise RuntimeError(f"Invalid merged DTB: {merged}")
+        model = subprocess.check_output(
+            ["fdtget", "-t", "s", str(merged), "/", "model"], text=True
+        ).strip()
+        if "Mondrian" not in model or "SM8475" not in model:
+            raise RuntimeError(f"Incorrect target board model in {merged}: {model}")
+        expanded = out / (base.stem + "-mondrian-merged.dts")
+        run(["dtc", "-I", "dtb", "-O", "dts", "-o", expanded, merged])
+        dt = expanded.read_text()
+        for name in ('goodix,gt9916S',
+                     'goodix_firmware_m11a.bin',
+                     'goodix_cfg_group_m11a.bin'):
+            if name not in dt:
+                raise RuntimeError(f"Missing {name} in merged {base.stem}")
+    result_files = sorted(dest.glob("*.dtb")) + sorted(dest.glob("*.dtbo"))
+    provenance = {
+        "device": "mondrian",
+        "kernel": kernel_head,
+        "oem_device_tree": oem_head,
+        "model": "SM8475",
+        "outputs_sha256": {
+            f.name: hashlib.sha256(f.read_bytes()).hexdigest()
+            for f in result_files
+        },
+        "board_overlay_applied_to_all_cape_bases": True,
+        "display_camera_overlays_compiled": False,
+        "bootloader_hardware_verified": False,
+        "android17_boot_verified": False,
+    }
+    (out / "dtbo-diagnostic-evidence.json").write_text(
+        json.dumps(provenance, indent=2) + "\n"
+    )
     print("[PASS] OEM Cape DTBs and mondrian board overlay compiled and applied")
     print("[PENDING] Display/camera DTBO, bootloader and hardware boot")
 
