@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "device": "mondrian",
+  "soc": "SM8475",
+  "android_base": "AOSP 17",
+  "source_repository": "MiCode/kernel_devicetree",
+  "source_commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
+  "selected_kernel_repository": "PixelExperience-Reborn/android_kernel_xiaomi_sm8450",
+  "selected_kernel_commit": "2466406b9beac724960b0c88e6e794421d0466e7",
+  "status": "oem_mondrian_board_dtb_diagnostic_compiled_not_ship_ready",
+  "original_git_blobs": {
+    "qcom/mondrian-sm8475-pm8008-overlay.dts": "46e60415b9287309e5290a6d32654f14d2b2ab42",
+    "qcom/mondrian-sm8475.dtsi": "bd4bb92b7e85b003d41589a482792c88965d74ef",
+    "qcom/mondrian-pinctrl.dtsi": "850dbfe93dd66bc9e6449953f741e1058ff2560a",
+    "qcom/mondrian-wl2866d.dtsi": "539502c463a993042c8a6af25fd24e99110496c8",
+    "qcom/xiaomi-sm8475-common.dtsi": "e4e321d4d54353f0243b0283647528180baa3137",
+    "qcom/cape-pmic-overlay.dtsi": "71ee4e645248d970f74794851dba78ca0ebc6227",
+    "qcom/waipio-thermal-overlay.dtsi": "1f04ed2572ebe6a0682e7af0fcb912e0432cb9e7"
+  },
+  "adaptations": [
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "oem_binding": "compatible = \"xiaomi,m11a-spi\";",
+      "pe_binding": "compatible = \"goodix,gt9916S\";",
+      "reason": "The selected OEM-derived Goodix Berlin SPI driver's OF table includes goodix,gt9916S but not xiaomi,m11a-spi."
+    },
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "oem_binding": "goodix,firmware-name = \"goodix_firmware_m11a\";",
+      "pe_binding": "goodix,firmware-name = \"goodix_firmware_m11a.bin\";",
+      "reason": "For Goodix platform id 0 request_firmware receives the exact DT firmware string; the mondrian vendor file has .bin."
+    },
+    {
+      "path": "qcom/mondrian-sm8475.dtsi",
+      "oem_binding": "goodix,config-name = \"goodix_cfg_group_m11a\";",
+      "pe_binding": "goodix,config-name = \"goodix_cfg_group_m11a.bin\";",
+      "reason": "For Goodix platform id 0 request_firmware receives the exact DT config string; the mondrian vendor file has .bin."
+    }
+  ],
+  "unresolved": [
+    "Compile and apply M11A display, mondrian camera and audio overlays from matching vendor/Qualcomm source",
+    "Verify actual bootloader board-id/SKU selector and DTBO image packaging",
+    "Confirm dynamic firmware and vendor partition staging for AOSP17",
+    "Validate panel notifier, suspend/resume, ESD, UDFPS and power management on real hardware",
+    "Compile and qualify the required Qualcomm external modules against OEM Module.symvers",
+    "Hardware boot, vendor_boot/vendor_dlkm integration, VINTF and SELinux"
+  ],
+  "qualifications": {
+    "dtbo_compiled": true,
+    "overlays_applied": true,
+    "firmware_resolved": false,
+    "hardware_booted": false,
+    "display_camera_overlays_compiled": false,
+    "hardware_board_revision_verified": false
+  },
+  "vendor_firmware_reference": {
+    "repository": "LF52406/proprietary_vendor_xiaomi_mondrian",
+    "ref": "lineage-24.0",
+    "commit": "3ccf06a7c4f6543a2a8b0811e8843514a624b56b",
+    "files": {
+      "proprietary/vendor/firmware/goodix_firmware_m11a.bin": "2b2f3834628da1b6bee1b7b23d847d7827be83ca",
+      "proprietary/vendor/firmware/goodix_cfg_group_m11a.bin": "b843685cb2a3a356c2f6733e0233bbbd75e06c95"
+    },
+    "purpose": "Source cross-check only; no firmware binary imported and no AOSP17 packaging claim."
+  },
+  "diagnostic_evidence": {
+    "kernel_commit": "2466406b9beac724960b0c88e6e794421d0466e7",
+    "oem_source_commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
+    "checked_bases": [
+      "cape",
+      "cape-v2",
+      "capep"
+    ],
+    "output": "three Cape base DTBs and mondrian-sm8475-pm8008-overlay.dtbo",
+    "fdt_overlay_applied_to_each": true,
+    "ci_run_url": "https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43010141003",
+    "compiled_artifact_id": 13850121963,
+    "production_dtbo_img_built": false,
+    "qca6490_oem_cnss_and_regulator_contract_verified": true,
+    "qca6490_hardware_rf_and_firmware_verified": false,
+    "goodix_udfps_oem_bindings_verified": true,
+    "goodix_udfps_device_runtime_verified": false
+  }
+}

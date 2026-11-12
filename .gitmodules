@@ -1,0 +1,3 @@
+[submodule "upstream/xiaomi-dts"]
+	path = upstream/xiaomi-dts
+	url = https://github.com/MiCode/kernel_devicetree.git
