@@ -77,6 +77,8 @@
     "compiled_artifact_id": 13850121963,
     "production_dtbo_img_built": false,
     "qca6490_oem_cnss_and_regulator_contract_verified": true,
-    "qca6490_hardware_rf_and_firmware_verified": false
+    "qca6490_hardware_rf_and_firmware_verified": false,
+    "goodix_udfps_oem_bindings_verified": true,
+    "goodix_udfps_device_runtime_verified": false
   }
 }
