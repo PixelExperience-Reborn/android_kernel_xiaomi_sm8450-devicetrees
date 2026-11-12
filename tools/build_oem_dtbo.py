@@ -100,11 +100,31 @@ def main():
         expanded = out / (base.stem + "-mondrian-merged.dts")
         run(["dtc", "-I", "dtb", "-O", "dts", "-o", expanded, merged])
         dt = expanded.read_text()
-        for name in ('goodix,gt9916S',
-                     'goodix_firmware_m11a.bin',
-                     'goodix_cfg_group_m11a.bin'):
+        # Verify OEM QCA6490 CNSS/PCIe DTS alongside the independently
+        # compiled Xiaomi QCACLD kernel module. This does not attest RF,
+        # vendor firmware, Bluetooth coexistence, or hardware power-on.
+        required = (
+            'goodix,gt9916S',
+            'goodix_firmware_m11a.bin',
+            'goodix_cfg_group_m11a.bin',
+            'qcom,cnss-qca6490',
+            'wlan-en-gpio',
+            'qcom,bt-en-gpio',
+            'qcom,sw-ctrl-gpio',
+            'qcom,wlan-rc-num',
+            'vdd-wlan-aon-supply',
+            'vdd-wlan-dig-supply',
+            'vdd-wlan-io-supply',
+            'vdd-wlan-rfa1-supply',
+            'vdd-wlan-rfa2-supply',
+            'wlan-ant-switch-supply',
+            'qcom,wlan-ramdump-dynamic',
+        )
+        for name in required:
             if name not in dt:
                 raise RuntimeError(f"Missing {name} in merged {base.stem}")
+        if dt.count('qcom,cnss-qca6490') != 1:
+            raise RuntimeError(f"Expected exactly one QCA6490 CNSS node in {base.stem}")
     result_files = sorted(dest.glob("*.dtb")) + sorted(dest.glob("*.dtbo"))
     provenance = {
         "device": "mondrian",
@@ -116,6 +136,8 @@ def main():
             for f in result_files
         },
         "board_overlay_applied_to_all_cape_bases": True,
+        "qca6490_oem_cnss_and_regulator_contract_verified": True,
+        "qca6490_hardware_rf_and_firmware_verified": False,
         "display_camera_overlays_compiled": False,
         "bootloader_hardware_verified": False,
         "android17_boot_verified": False,

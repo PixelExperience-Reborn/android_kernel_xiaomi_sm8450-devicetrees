@@ -75,6 +75,8 @@
     "fdt_overlay_applied_to_each": true,
     "ci_run_url": "https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43010141003",
     "compiled_artifact_id": 13850121963,
-    "production_dtbo_img_built": false
+    "production_dtbo_img_built": false,
+    "qca6490_oem_cnss_and_regulator_contract_verified": true,
+    "qca6490_hardware_rf_and_firmware_verified": false
   }
 }
