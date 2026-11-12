@@ -123,7 +123,7 @@ def main():
         for name in required:
             if name not in dt:
                 raise RuntimeError(f"Missing {name} in merged {base.stem}")
-        if dt.count('qcom,cnss-qca6490') != 1:
+        if dt.count('compatible = "qcom,cnss-qca6490";') != 1:
             raise RuntimeError(f"Expected exactly one QCA6490 CNSS node in {base.stem}")
     result_files = sorted(dest.glob("*.dtb")) + sorted(dest.glob("*.dtbo"))
     provenance = {
