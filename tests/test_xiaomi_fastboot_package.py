@@ -93,6 +93,23 @@ class XiaomiFastbootAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "mondrian"):
             read_mondrian_boot_partitions(self.package)
 
+    def test_reject_mixed_global_and_eea_stock_images(self):
+        eea_root = "mondrian_eea_global_images_OS3.0.2.0.VMNEUXM_TEST_15.0_eea"
+        tar_package(self.package, [
+            (STOCK_MEMBER, fake_dtb()),
+            (eea_root + "/images/vendor_boot.img",
+             b"VNDRBOOT" + b"\x00" * 2112),
+        ])
+        with self.assertRaisesRegex(ValueError, "mixed mondrian Fastboot roots"):
+            read_mondrian_boot_partitions(self.package)
+
+    def test_reject_nested_unexpected_stock_images_path(self):
+        tar_package(self.package, [
+            (STOCK_ROOT + "/extra/images/dtbo.img", fake_dtb()),
+        ])
+        with self.assertRaisesRegex(ValueError, "outside the stock images directory"):
+            read_mondrian_boot_partitions(self.package)
+
     def test_reject_wrong_root(self):
         tar_package(self.package, [("otherdevice_images_TEST/images/dtbo.img", fake_dtb())])
         with self.assertRaisesRegex(ValueError, "mondrian"):
