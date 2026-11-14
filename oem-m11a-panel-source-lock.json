@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "device": "mondrian",
+  "soc": "SM8475",
+  "android_base": "AOSP 17",
+  "provenance_policy": "OEM Xiaomi MiCode sources and verified manufacturer stock firmware only",
+  "oem_published_dts": {
+    "repository": "MiCode/kernel_devicetree",
+    "branch": "mondrian-s-oss",
+    "commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
+    "confirmed_panel_source_available": false
+  },
+  "stock_firmware": {
+    "source_package_sha256": null,
+    "dtbo_sha256": null,
+    "regional_sku": null,
+    "device_board_id_confirmed": false,
+    "stock_firmware_authenticity_verified": false
+  },
+  "qualification": {
+    "manufacturer_panel_parameters_verified": false,
+    "m11a_dt_source_reviewed": false,
+    "independent_pe_panel_dts_implemented": false,
+    "full_m11a_dtb_compiled": false,
+    "dsc_timing_verified_on_hardware": false,
+    "udfps_lhbm_verified_on_hardware": false,
+    "production_dtbo_img_approved": false
+  },
+  "product_selection_allowed": false,
+  "status": "BLOCKED_MISSING_XIAOMI_M11A_OEM_PANEL_SOURCE",
+  "notes": "LineageOS or other ROM sources are read-only comparative references, never panel source inputs for PE-Reborn. Xiaomi stock DTBO extraction is diagnostic, not authorship/provenance certification."
+}
