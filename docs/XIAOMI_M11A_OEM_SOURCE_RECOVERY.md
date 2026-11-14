@@ -14,19 +14,21 @@
 ## OEM-first recovery procedure
 
 1. Start with an **official Xiaomi stock fastboot firmware archive for the exact mondrian SKU/region** from Xiaomi's distribution portal, or read the equivalent partition from the owner's unmodified stock installation. Record build number, model/region, source URL and cryptographic SHA256 of the original firmware archive. A user-entered filename or checksum is **not** independent provenance verification.
-2. Locate `images/dtbo.img` in the manufacturer package. Keep the original and hashes outside the PE-Reborn Git tree. Other board descriptions may be stored in the stock boot/vendor_boot images; absence from `dtbo.img` alone is **not** evidence that the panel does not exist.
+2. Confirm **both** `images/dtbo.img` and, when present, `images/vendor_boot.img` in the manufacturer package. Keep the original package and hashes outside the PE-Reborn Git tree. Per AOSP 17 [vendor_boot v3/v4 header layout](https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/android17-release/include/bootimg/bootimg.h), a vendor boot image can carry a separate, page-aligned DTB section; the script parses only that section (never the ramdisk). Absence of a panel property in `dtbo.img` **does not** prove the factory build has no panel definition.
 3. Install `device-tree-compiler` (`dtc`) and download the **Xiaomi-hosted Fastboot archive matching the exact device SKU and region**. For example, a `mondrian_global_images_...` package is not interchangeable with `mondrian_eea_global_images_...` without variant checks. Do **not** flash anything.
    ```bash
    # Original full Xiaomi Fastboot archive, kept outside our Git repository
    sha256sum /path/to/mondrian_global_images_...tgz
 
-   # Read-only streaming inspection: only images/dtbo.img is inspected
+   # Read-only streaming inspection: images/dtbo.img and optional vendor_boot.img
    python3 tools/audit_xiaomi_fastboot_package.py \
        --fastboot-tgz /path/to/mondrian_global_images_...tgz \
        --expected-sha256 <FULL_SHA256_OF_DOWNLOADED_TGZ> \
        --out /tmp/pe-mondrian-stock-dtbo-audit
    ```
-   This **does not require extracting the whole 7–9 GB Xiaomi Fastboot package**. The script checks the expected SHA-256 against the entire local archive, rejects non-`mondrian` archive roots, unsafe member paths, links, duplicate DTBO files, malformed DT tables and FDT bounds, and stores only JSON hashes and candidate feature-presence flags. It deletes the temporary local DTBO copy after analysis.
+   This **does not require extracting the whole Xiaomi Fastboot package**. The script checks the expected SHA-256 against the entire local archive, rejects non-`mondrian` archive roots, unsafe member paths, links, duplicate DTBO/vendor_boot members, malformed Android DT tables, unsupported vendor_boot headers and FDT bounds, and stores only JSON hashes and candidate feature-presence flags. It deletes the temporary local DTBO copy after analysis. `vendor_boot.img` is read only into bounded memory; it is not left on disk, and the vendor ramdisk is neither extracted nor decompressed.
+   
+   The resulting `xiaomi-stock-dtbo-diagnostic.json` has an optional `stock_vendor_boot` section: `present`, `embedded_dtb_count`, header version, per-DTB hashes and panel property-presence indicators. A zero count or absent vendor_boot is normal *diagnostic* evidence, not an assertion about the actual M11A panel. We still need the exact manufacturer's board/panel revision and source audit before native implementation.
    
    If an authentic `dtbo.img` has *already* been extracted separately from Xiaomi stock firmware, the original diagnostic entry point also remains available:
    ```bash
