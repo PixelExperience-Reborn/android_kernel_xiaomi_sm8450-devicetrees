@@ -63,7 +63,7 @@ class XiaomiVendorBootTests(unittest.TestCase):
         header, parts = parse_vendor_boot(payload)
         self.assertEqual(header["header_version"], 4)
         self.assertEqual(len(parts), 2)
-        self.assertEqual(header["dtb_size"], 80)
+        self.assertEqual(header["dtb_size"], 2 * len(fdt_fixture()))
 
     def test_extract_with_zero_inter_dtb_padding(self):
         payload = vendor_boot_fixture(
