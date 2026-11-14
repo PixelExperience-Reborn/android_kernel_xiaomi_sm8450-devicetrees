@@ -57,7 +57,8 @@ def parse_android_dtbo(data):
         raise ValueError("invalid DT entry count")
     if offset < header or offset + count * item_size > total:
         raise ValueError("DT entries extend outside table")
-    if version not in (0, 1):
+    # Android's published DT table v0 layout is the only format validated here.
+    if version != 0:
         raise ValueError("unsupported Android DT table version")
     entries = []
     for i in range(count):
@@ -67,9 +68,12 @@ def parse_android_dtbo(data):
             raise ValueError(f"DT entry {i} outside declared image bounds")
         if location < offset + count * item_size and location + size > offset:
             raise ValueError(f"DT entry {i} overlaps table metadata")
-        fdt = parse_fdt(data[location:location + size])
-        if len(fdt) != size:
-            raise ValueError(f"DT entry {i} length does not match FDT totalsize")
+        payload = data[location:location + size]
+        fdt = parse_fdt(payload)
+        # OEM image packers may add alignment padding. Accept it only if it
+        # consists of zero bytes, never silently hide non-FDT payload.
+        if any(payload[len(fdt):]):
+            raise ValueError(f"DT entry {i} contains nonzero trailing data")
         entries.append((i, board_id, revision, fdt))
     return entries
 
@@ -86,6 +90,7 @@ def inspect_dts(dts):
         ),
         "dsc_property_present": "qcom,mdss-dsc-slice-width" in dts,
         "xiaomi_local_hbm_property_present": "mi,local-hbm-enabled" in dts,
+        "xiaomi_board_id_property_present": "xiaomi,miboard-id" in dts,
     }
 
 
