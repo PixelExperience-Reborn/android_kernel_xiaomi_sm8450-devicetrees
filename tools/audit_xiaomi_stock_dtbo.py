@@ -11,6 +11,9 @@ import json
 import shutil
 import struct
 import subprocess
+
+# Imported lazily below: panel parser also imports the minimal FDT header
+# validator from this module, avoiding an import cycle.
 from pathlib import Path
 
 DT_TABLE_MAGIC = 0xD7B7AB1E
@@ -102,6 +105,7 @@ def audit(dtbo_path, *, package_sha256, output):
     if not shutil.which("dtc"):
         raise RuntimeError("dtc is required to inspect FDT properties")
     output.mkdir(parents=True, exist_ok=True)
+    from audit_xiaomi_panel_evidence import panel_evidence_from_fdt
     results = []
     for index, board_id, revision, fdt in entries:
         proc = subprocess.run(["dtc", "-q", "-I", "dtb", "-O", "dts"],
@@ -113,6 +117,7 @@ def audit(dtbo_path, *, package_sha256, output):
             "entry_revision": revision,
             "dtb_sha256": hashlib.sha256(fdt).hexdigest(),
             "candidate_signals": inspect_dts(decoded),
+            "manufacturer_panel_structure": panel_evidence_from_fdt(fdt),
         }
         results.append(record)
     evidence = {
