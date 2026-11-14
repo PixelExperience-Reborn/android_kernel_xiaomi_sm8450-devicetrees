@@ -77,11 +77,17 @@ def fdt_nodes(fdt):
          ">10I", blob, 0)
     if magic != FDT_MAGIC or size != len(blob) or version < 17 or last_comp > 17:
         raise ValueError("unsupported FDT header or version")
-    if (offset_struct % 4 or offset_reserve % 8 or
+    if (offset_struct % 4 or offset_reserve % 8 or struct_len % 4 or
             offset_struct < 40 or offset_reserve < 40 or
             offset_struct + struct_len > size or
-            offset_strings + strings_len > size):
+            offset_strings + strings_len > size or
+            offset_reserve + 16 > size):
         raise ValueError("FDT block offset/size outside aligned bounds")
+    # The structure and strings blocks must not overlap. The minimum valid
+    # reservation map contains the 16-byte terminating zero-address entry.
+    if (offset_struct < offset_strings + strings_len and
+            offset_strings < offset_struct + struct_len):
+        raise ValueError("overlapping FDT structure and strings blocks")
     struct_end = offset_struct + struct_len
     strings_end = offset_strings + strings_len
     nodes = {}
@@ -94,8 +100,11 @@ def fdt_nodes(fdt):
         pos += 4
         if tag == FDT_BEGIN_NODE:
             name, pos = _terminated_string(blob, pos, struct_end, "node")
-            pos = (pos + 3) & ~3
-            if pos > struct_end or not stack and name:
+            aligned = (pos + 3) & ~3
+            if aligned > struct_end or any(blob[pos:aligned]):
+                raise ValueError("invalid FDT node name padding")
+            pos = aligned
+            if pos > struct_end or (not stack and name):
                 raise ValueError("invalid FDT root or node alignment")
             stack.append(name)
             node_path = "/" + "/".join(x for x in stack if x)
@@ -121,7 +130,10 @@ def fdt_nodes(fdt):
                 raise ValueError("duplicate or excessive FDT properties")
             nodes[node_path][name] = blob[pos:pos + length]
             props_count += 1
-            pos += (length + 3) & ~3
+            padded = (length + 3) & ~3
+            if any(blob[pos + length:pos + padded]):
+                raise ValueError("invalid FDT property padding")
+            pos += padded
         elif tag == FDT_NOP:
             continue
         elif tag == FDT_END:
