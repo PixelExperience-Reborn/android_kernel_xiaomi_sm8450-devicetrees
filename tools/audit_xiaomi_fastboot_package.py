@@ -13,6 +13,7 @@ import tarfile
 import tempfile
 
 from audit_xiaomi_stock_dtbo import audit
+from audit_xiaomi_vendor_boot import audit_vendor_boot_data, MAX_VENDOR_BOOT_BYTES
 
 MAX_DTBO_BYTES = 128 * 1024 * 1024
 CHUNK = 1024 * 1024
@@ -26,13 +27,15 @@ def sha256_file(path):
     return checksum.hexdigest()
 
 
-def read_mondrian_dtbo(archive_path):
-    """Read exactly one normal-file images/dtbo.img from a mondrian Fastboot tar.
+def read_mondrian_boot_partitions(archive_path):
+    """Find stock DTBO (required) and vendor_boot (optional), in one tar stream.
 
-    Returns the archive member's original name and its bytes. All other members
-    are skipped; never use tarfile.extract/extractall on an untrusted archive.
+    Values are (archive path, raw bounded bytes). All other partitions are
+    ignored; no extracted filename or archive link ever reaches the filesystem.
     """
-    candidate = None
+    found = {}
+    limits = {"dtbo.img": MAX_DTBO_BYTES,
+              "vendor_boot.img": MAX_VENDOR_BOOT_BYTES}
     try:
         with tarfile.open(archive_path, mode="r|gz") as source:
             for member in source:
@@ -40,30 +43,39 @@ def read_mondrian_dtbo(archive_path):
                 path = PurePosixPath(name)
                 if path.is_absolute() or ".." in path.parts or "\\" in name:
                     raise ValueError(f"unsafe archive member path: {name!r}")
-                if path.parts[-2:] != ("images", "dtbo.img"):
+                if len(path.parts) < 3 or path.parts[-2] != "images":
                     continue
-                if not path.parts or not path.parts[0].startswith("mondrian"):
-                    raise ValueError("DTBO is not under the mondrian firmware root")
+                basename = path.parts[-1]
+                if basename not in limits:
+                    continue
+                if not path.parts[0].startswith("mondrian_"):
+                    raise ValueError("DTBO/vendor_boot not under a mondrian firmware root")
                 if "_images_" not in path.parts[0]:
                     raise ValueError("input archive does not identify a mondrian Fastboot ROM")
                 if not member.isfile():
-                    raise ValueError("DTBO archive member is not a regular file")
-                if candidate is not None:
-                    raise ValueError("multiple dtbo.img members in stock archive")
-                if not 40 <= member.size <= MAX_DTBO_BYTES:
-                    raise ValueError("DTBO archive member size outside safe limits")
+                    raise ValueError(f"{basename} archive member is not a regular file")
+                if basename in found:
+                    raise ValueError(f"multiple {basename} members in stock archive")
+                limit = limits[basename]
+                if not 40 <= member.size <= limit:
+                    raise ValueError(f"{basename} archive member size outside safe limits")
                 handle = source.extractfile(member)
                 if handle is None:
-                    raise ValueError("DTBO archive member cannot be read")
-                data = handle.read(MAX_DTBO_BYTES + 1)
+                    raise ValueError(f"{basename} archive member cannot be read")
+                data = handle.read(limit + 1)
                 if len(data) != member.size:
-                    raise ValueError("DTBO archive payload length mismatch")
-                candidate = (name, data)
+                    raise ValueError(f"{basename} archive payload length mismatch")
+                found[basename] = (name, data)
     except (tarfile.TarError, EOFError) as exc:
         raise ValueError(f"invalid Xiaomi Fastboot archive: {exc}") from exc
-    if candidate is None:
+    if "dtbo.img" not in found:
         raise ValueError("no images/dtbo.img in mondrian stock Fastboot archive")
-    return candidate
+    return found
+
+
+def read_mondrian_dtbo(archive_path):
+    """Compatibility wrapper for existing tests and DTBO-only users."""
+    return read_mondrian_boot_partitions(archive_path)["dtbo.img"]
 
 
 def audit_fastboot_package(package, expected_sha256, output):
@@ -75,7 +87,8 @@ def audit_fastboot_package(package, expected_sha256, output):
     actual = sha256_file(package)
     if actual != expected_sha256.lower():
         raise ValueError("manufacturer source-package checksum mismatch")
-    member_path, dtbo_data = read_mondrian_dtbo(package)
+    partitions = read_mondrian_boot_partitions(package)
+    member_path, dtbo_data = partitions["dtbo.img"]
     output.mkdir(parents=True, exist_ok=True)
     # Existing DTBO audit accepts a local path; use a disposable file outside
     # the repo and remove the raw OEM image after obtaining JSON evidence.
@@ -84,6 +97,16 @@ def audit_fastboot_package(package, expected_sha256, output):
         extracted.write_bytes(dtbo_data)
         result_path = audit(extracted, package_sha256=actual, output=output)
     evidence = json.loads(result_path.read_text())
+    if "vendor_boot.img" in partitions:
+        vendor_member, vendor_data = partitions["vendor_boot.img"]
+        evidence["stock_vendor_boot"] = audit_vendor_boot_data(vendor_data)
+        evidence["stock_vendor_boot"]["fastboot_archive_member"] = vendor_member
+    else:
+        evidence["stock_vendor_boot"] = {
+            "present": False,
+            "status": "NO_VENDOR_BOOT_IN_ARCHIVE",
+            "m11a_panel_ready": False,
+        }
     evidence.update({
         "fastboot_archive_filename": package.name,
         "fastboot_archive_member": member_path,
