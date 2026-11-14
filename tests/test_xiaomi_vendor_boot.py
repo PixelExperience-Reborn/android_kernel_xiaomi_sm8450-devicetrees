@@ -13,8 +13,13 @@ from audit_xiaomi_vendor_boot import (  # noqa: E402
 
 
 def fdt_fixture():
-    """Minimal FDT header for structural validation, not a real panel."""
-    return struct.pack(">10I", 0xD00DFEED, 40, 40, 40, 40, 17, 16, 0, 0, 0)
+    """Minimal *valid* FDT v17, no hardware or panel-specific properties."""
+    # header + zero-terminated reservation map + root begin/end + FDT_END
+    structure = struct.pack(">4I", 1, 0, 2, 9)
+    size = 40 + 16 + len(structure)
+    header = struct.pack(">10I", 0xD00DFEED, size, 56, size, 40,
+                         17, 16, 0, 0, len(structure))
+    return header + b"\x00" * 16 + structure
 
 
 def vendor_boot_fixture(version=4, *, ramdisk=b"", dtbs=(), tail=b"",
