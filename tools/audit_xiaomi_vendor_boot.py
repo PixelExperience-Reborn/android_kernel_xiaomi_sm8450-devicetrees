@@ -15,6 +15,7 @@ import struct
 import subprocess
 
 from audit_xiaomi_stock_dtbo import FDT_MAGIC, inspect_dts, parse_fdt
+from audit_xiaomi_panel_evidence import panel_evidence_from_fdt
 
 MAGIC = b"VNDRBOOT"
 V3_HEADER_SIZE = 2112
@@ -114,6 +115,7 @@ def audit_vendor_boot_data(data):
             "index": index,
             "dtb_sha256": hashlib.sha256(blob).hexdigest(),
             "candidate_signals": inspect_dts(decoded),
+            "manufacturer_panel_structure": panel_evidence_from_fdt(blob),
         })
     return {
         "present": True,
