@@ -34,6 +34,7 @@ def read_mondrian_boot_partitions(archive_path):
     ignored; no extracted filename or archive link ever reaches the filesystem.
     """
     found = {}
+    stock_root = None
     limits = {"dtbo.img": MAX_DTBO_BYTES,
               "vendor_boot.img": MAX_VENDOR_BOOT_BYTES}
     try:
@@ -52,6 +53,12 @@ def read_mondrian_boot_partitions(archive_path):
                     raise ValueError("DTBO/vendor_boot not under a mondrian firmware root")
                 if "_images_" not in path.parts[0]:
                     raise ValueError("input archive does not identify a mondrian Fastboot ROM")
+                if len(path.parts) != 3:
+                    raise ValueError("DTBO/vendor_boot is outside the stock images directory")
+                if stock_root is None:
+                    stock_root = path.parts[0]
+                elif path.parts[0] != stock_root:
+                    raise ValueError("mixed mondrian Fastboot roots or regional SKU packages")
                 if not member.isfile():
                     raise ValueError(f"{basename} archive member is not a regular file")
                 if basename in found:
