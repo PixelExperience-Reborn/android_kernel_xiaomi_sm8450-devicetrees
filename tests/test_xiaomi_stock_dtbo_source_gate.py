@@ -43,6 +43,20 @@ class XiaomiStockDtboTests(unittest.TestCase):
         self.assertEqual([r[2] for r in entries], [0, 1])
         self.assertEqual([r[1] for r in entries], [530, 530])
 
+    def test_accept_only_zero_fdt_alignment_padding(self):
+        padded = mock_android_dtbo(mock_fdt() + b"\x00" * 4)
+        entries = parse_android_dtbo(padded)
+        self.assertEqual(entries[0][3], mock_fdt())
+        corrupted = mock_android_dtbo(mock_fdt() + b"\x01" * 4)
+        with self.assertRaises(ValueError):
+            parse_android_dtbo(corrupted)
+
+    def test_reject_unreviewed_android_dt_table_version(self):
+        data = bytearray(mock_android_dtbo(mock_fdt()))
+        struct.pack_into(">I", data, 28, 1)
+        with self.assertRaises(ValueError):
+            parse_android_dtbo(data)
+
     def test_reject_image_too_short(self):
         with self.assertRaises(ValueError):
             parse_android_dtbo(b"\x00" * 20)
