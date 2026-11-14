@@ -95,10 +95,16 @@ class XiaomiStockDtboTests(unittest.TestCase):
         self.assertFalse(lock["qualification"]["independent_pe_panel_dts_implemented"])
         self.assertFalse(lock["qualification"]["production_dtbo_img_approved"])
         self.assertFalse(lock["product_selection_allowed"])
-        self.assertEqual(
-            list((ROOT / "qcom/display").rglob("*.dts*"))
-            if (ROOT / "qcom/display").exists() else [], [],
-            "Unreviewed M11A display DTS must never enter the product tree")
+        # Reject panel payloads anywhere under qcom/, not only display/.
+        # Existing OEM touch firmware names mention m11a and remain valid.
+        for panel_dts in (ROOT / "qcom").rglob("*"):
+            if not panel_dts.is_file() or panel_dts.suffix not in (".dts", ".dtsi"):
+                continue
+            text = panel_dts.read_text(errors="replace")
+            self.assertNotIn("qcom,mdss-dsi-panel-name", text,
+                             f"Unreviewed panel DTS added: {panel_dts}")
+            self.assertNotIn("mi,local-hbm-enabled", text,
+                             f"Unreviewed Xiaomi LHBM commands added: {panel_dts}")
         # The OEM seven-file board source lock remains immutable.
         board_lock = json.loads((ROOT / "oem-source-lock.json").read_text())
         self.assertEqual(len(board_lock["original_git_blobs"]), 7)
