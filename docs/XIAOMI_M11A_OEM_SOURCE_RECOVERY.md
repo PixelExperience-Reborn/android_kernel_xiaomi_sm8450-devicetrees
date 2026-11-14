@@ -15,15 +15,27 @@
 
 1. Start with an **official Xiaomi stock fastboot firmware archive for the exact mondrian SKU/region** from Xiaomi's distribution portal, or read the equivalent partition from the owner's unmodified stock installation. Record build number, model/region, source URL and cryptographic SHA256 of the original firmware archive. A user-entered filename or checksum is **not** independent provenance verification.
 2. Locate `images/dtbo.img` in the manufacturer package. Keep the original and hashes outside the PE-Reborn Git tree. Other board descriptions may be stored in the stock boot/vendor_boot images; absence from `dtbo.img` alone is **not** evidence that the panel does not exist.
-3. Install `device-tree-compiler` (`dtc`). Execute the read-only audit:
+3. Install `device-tree-compiler` (`dtc`) and download the **Xiaomi-hosted Fastboot archive matching the exact device SKU and region**. For example, a `mondrian_global_images_...` package is not interchangeable with `mondrian_eea_global_images_...` without variant checks. Do **not** flash anything.
    ```bash
-   sha256sum mondrian_stock_fastboot.tgz
-   python3 tools/audit_xiaomi_stock_dtbo.py \
-       --dtbo /path/to/official_xiaomi/images/dtbo.img \
-       --package-sha256 <SHA256_OF_THE_ORIGINAL_STOCK_ARCHIVE> \
+   # Original full Xiaomi Fastboot archive, kept outside our Git repository
+   sha256sum /path/to/mondrian_global_images_...tgz
+
+   # Read-only streaming inspection: only images/dtbo.img is inspected
+   python3 tools/audit_xiaomi_fastboot_package.py \
+       --fastboot-tgz /path/to/mondrian_global_images_...tgz \
+       --expected-sha256 <FULL_SHA256_OF_DOWNLOADED_TGZ> \
        --out /tmp/pe-mondrian-stock-dtbo-audit
    ```
-   The script validates the Android DT table and FDT boundaries, decompiles **in memory** using `dtc`, and stores only JSON hashes and candidate feature-presence flags. It does **not** copy a third-party panel tree, dump proprietary DCS commands into the repository, produce a `dtbo.img` or assert manufacturer authenticity.
+   This **does not require extracting the whole 7–9 GB Xiaomi Fastboot package**. The script checks the expected SHA-256 against the entire local archive, rejects non-`mondrian` archive roots, unsafe member paths, links, duplicate DTBO files, malformed DT tables and FDT bounds, and stores only JSON hashes and candidate feature-presence flags. It deletes the temporary local DTBO copy after analysis.
+   
+   If an authentic `dtbo.img` has *already* been extracted separately from Xiaomi stock firmware, the original diagnostic entry point also remains available:
+   ```bash
+   python3 tools/audit_xiaomi_stock_dtbo.py \
+       --dtbo /path/to/xiaomi-stock/images/dtbo.img \
+       --package-sha256 <FULL_SHA256_OF_ORIGINAL_STOCK_ARCHIVE> \
+       --out /tmp/pe-mondrian-stock-dtbo-audit
+   ```
+   **Important provenance limit:** comparing an archive to a SHA-256 typed by the same operator verifies file integrity only; it is **not independent manufacturer signature verification**. Keep the original Xiaomi download host, ROM version/region and independently trusted metadata. Neither helper imports foreign panel code, writes proprietary DCS sequences into our Git repository, produces production `dtbo.img`, or authorizes a hardware claim.
 4. Confirm extracted evidence against *matching original Xiaomi* panel revision/SKU/board selection and, when available, Qualcomm's published bindings and kernel driver. Check real DSC parameters, DSI PHY rates/lanes, regulator power order, ESD, brightness, doze, UDFPS-local HBM command transitions and panel readiness events.
 5. Independently implement a **native mondrian panel definition** compatible with the selected OEM kernel, exact Qualcomm SDE/DSI and Android 17 userspace. Keep provenance, reviewed adaptation diffs, real test cases and actual hardware validation. No placeholder DCS commands or forced feature-disable are permitted.
 6. Only after OEM source authenticity, panel revision and all dependencies are proven: review the `oem-m11a-panel-source-lock.json` gate and approve changes to shipping DTS/build scripts. Re-run actual Cape/board `fdtoverlay`, `msm_drm.ko`/KMI, Goodix UDFPS/LHBM, module load order, AOSP17 HWC/VINTF/SELinux and real mondrian tests.
