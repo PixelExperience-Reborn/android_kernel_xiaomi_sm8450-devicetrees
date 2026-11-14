@@ -174,7 +174,10 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
     def test_reject_truncated_structure_block(self):
         raw = bytearray(sample_panel_fdt())
         struct.pack_into(">I", raw, 36, 0xFFFFFFF0)
-        with self.assertRaisesRegex(ValueError, "outside aligned bounds"):
+        # The existing FDT header validator may reject this before the
+        # new structure parser sees it. Both paths must fail closed.
+        with self.assertRaisesRegex(
+                ValueError, "overflows totalsize|outside aligned bounds"):
             fdt_nodes(raw)
 
     def test_reject_corrupt_fdt_property_padding(self):
