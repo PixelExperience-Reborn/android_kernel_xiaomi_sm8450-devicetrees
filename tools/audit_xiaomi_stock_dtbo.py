@@ -42,42 +42,118 @@ def parse_fdt(data):
     return data[:length]
 
 
-def parse_android_dtbo(data):
-    """Return (entry index, hardware id, revision, exact FDT bytes)."""
+MAX_DECOMPRESSED_DTB_BYTES = 64 * 1024 * 1024
+COMPRESSION_NAMES = ("none", "zlib", "gzip", "lz4")
+
+
+def _inflate_entry(payload, compression, index):
+    """Decode official AOSP mkdtboimg compression with an explicit output cap.
+
+    The original compressed bytes remain in the stock image, are never written
+    to the PE device tree and are not independently proof of manufacturer origin.
+    """
+    if compression == 0:
+        return payload
+    if compression in (1, 2):
+        decoder = zlib.decompressobj(15 if compression == 1 else 31)
+        try:
+            output = decoder.decompress(payload, MAX_DECOMPRESSED_DTB_BYTES + 1)
+            if len(output) > MAX_DECOMPRESSED_DTB_BYTES or decoder.unconsumed_tail:
+                raise ValueError(f"DT entry {index} exceeds decompressed size limit")
+            output += decoder.flush(MAX_DECOMPRESSED_DTB_BYTES + 1 - len(output))
+        except zlib.error as exc:
+            raise ValueError(f"DT entry {index} has corrupt compressed data") from exc
+        if (len(output) > MAX_DECOMPRESSED_DTB_BYTES or not decoder.eof or
+                decoder.unused_data):
+            raise ValueError(f"DT entry {index} has truncated/trailing compressed data")
+        return output
+    if compression == 3:
+        try:
+            import lz4.frame
+        except ImportError as exc:
+            raise ValueError(
+                "LZ4 compressed stock DTBO requires optional Python lz4.frame") from exc
+        try:
+            decoder = lz4.frame.LZ4FrameDecompressor()
+            output = decoder.decompress(
+                payload, max_length=MAX_DECOMPRESSED_DTB_BYTES + 1)
+        except (RuntimeError, ValueError) as exc:
+            raise ValueError(f"DT entry {index} has corrupt LZ4 compressed data") from exc
+        if (len(output) > MAX_DECOMPRESSED_DTB_BYTES or not decoder.eof or
+                decoder.unused_data):
+            raise ValueError(f"DT entry {index} has oversized/trailing LZ4 data")
+        return output
+    raise ValueError(f"unsupported DT entry {index} compression format {compression}")
+
+
+def parse_android_dtbo(data, *, with_metadata=False):
+    """Parse official AOSP DT table versions 0, 1 and 2 or a raw FDT.
+
+    Legacy call sites receive the original (index, id, rev, FDT) tuples.
+    with_metadata=True also returns version/flags/custom fields needed for
+    manufacturer SKU review without assigning a guessed board selection.
+    """
     if len(data) < 32:
         raise ValueError("DTBO image shorter than header")
     if _u32(data, 0) == FDT_MAGIC:
-        return [(0, None, None, parse_fdt(data))]
-    magic, total, header, item_size, count, offset, _page, version = (
+        fdt = parse_fdt(data)
+        item = {
+            "index": 0, "id": None, "revision": None,
+            "table_version": None, "entry_flags": 0,
+            "compression": "none", "custom_fields": [],
+            "table_page_size": None, "fdt": fdt,
+        }
+        return [item] if with_metadata else [(0, None, None, fdt)]
+    magic, total, header, item_size, count, offset, page_size, version = (
         struct.unpack_from(">8I", data))
     if magic != DT_TABLE_MAGIC:
         raise ValueError("missing Android DT table magic / raw DTB header")
     if total < 32 or total > len(data):
         raise ValueError("Android DT table size outside file bounds")
-    if header < 32 or header > total or item_size < 32:
-        raise ValueError("invalid DT table header/entry size")
+    if header != 32:
+        raise ValueError("invalid Android DT table header size")
+    expected = {0: 32, 1: 32, 2: 64}.get(version)
+    if expected is None:
+        raise ValueError(f"unsupported Android DT table version {version}")
+    if item_size != expected:
+        raise ValueError("invalid Android DT entry size for table version")
+    if not (page_size and (page_size & (page_size - 1)) == 0 and
+            512 <= page_size <= 65536):
+        raise ValueError("invalid Android DT table page size")
     if count == 0 or count > MAX_ENTRIES:
         raise ValueError("invalid DT entry count")
-    if offset < header or offset + count * item_size > total:
+    metadata_end = offset + count * item_size
+    if offset < header or metadata_end > total:
         raise ValueError("DT entries extend outside table")
-    # Android's published DT table v0 layout is the only format validated here.
-    if version != 0:
-        raise ValueError("unsupported Android DT table version")
     entries = []
-    for i in range(count):
-        size, location, board_id, revision = struct.unpack_from(
-            ">4I", data, offset + i * item_size)
-        if size < 40 or location < header or location + size > total:
-            raise ValueError(f"DT entry {i} outside declared image bounds")
-        if location < offset + count * item_size and location + size > offset:
-            raise ValueError(f"DT entry {i} overlaps table metadata")
+    for index in range(count):
+        words = struct.unpack_from(
+            ">" + ("8I" if version in (0, 1) else "16I"),
+            data, offset + index * item_size)
+        size, location, board_id, revision = words[:4]
+        flags = 0 if version == 0 else words[4]
+        custom = words[4:] if version == 0 else words[5:]
+        if flags & ~0x0F:
+            raise ValueError(f"DT entry {index} has unrecognized flags")
+        compression = flags & 0x0F
+        if compression >= len(COMPRESSION_NAMES):
+            raise ValueError(f"DT entry {index} has unsupported compression")
+        if size < 1 or location < metadata_end or location + size > total:
+            raise ValueError(f"DT entry {index} outside declared image bounds")
         payload = data[location:location + size]
-        fdt = parse_fdt(payload)
-        # OEM image packers may add alignment padding. Accept it only if it
-        # consists of zero bytes, never silently hide non-FDT payload.
-        if any(payload[len(fdt):]):
-            raise ValueError(f"DT entry {i} contains nonzero trailing data")
-        entries.append((i, board_id, revision, fdt))
+        decoded = _inflate_entry(payload, compression, index)
+        fdt = parse_fdt(decoded)
+        if any(decoded[len(fdt):]):
+            raise ValueError(f"DT entry {index} contains nonzero trailing data")
+        item = {
+            "index": index, "id": board_id, "revision": revision,
+            "table_version": version, "entry_flags": flags,
+            "compression": COMPRESSION_NAMES[compression],
+            "custom_fields": list(custom),
+            "table_page_size": page_size, "fdt": fdt,
+        }
+        entries.append(item if with_metadata else
+                       (index, board_id, revision, fdt))
     return entries
 
 
@@ -101,20 +177,27 @@ def audit(dtbo_path, *, package_sha256, output):
     data = dtbo_path.read_bytes()
     if not data:
         raise ValueError("input stock image is empty")
-    entries = parse_android_dtbo(data)
+    entries = parse_android_dtbo(data, with_metadata=True)
     if not shutil.which("dtc"):
         raise RuntimeError("dtc is required to inspect FDT properties")
     output.mkdir(parents=True, exist_ok=True)
     from audit_xiaomi_panel_evidence import panel_evidence_from_fdt
     results = []
-    for index, board_id, revision, fdt in entries:
+    for entry in entries:
+        index = entry["index"]
+        fdt = entry["fdt"]
         proc = subprocess.run(["dtc", "-q", "-I", "dtb", "-O", "dts"],
                               input=fdt, capture_output=True, check=True)
         decoded = proc.stdout.decode("utf-8", errors="replace")
         record = {
             "entry_index": index,
-            "entry_id": board_id,
-            "entry_revision": revision,
+            "entry_id": entry["id"],
+            "entry_revision": entry["revision"],
+            "entry_custom_fields": entry["custom_fields"],
+            "table_version": entry["table_version"],
+            "entry_flags": entry["entry_flags"],
+            "entry_compression": entry["compression"],
+            "table_page_size": entry["table_page_size"],
             "dtb_sha256": hashlib.sha256(fdt).hexdigest(),
             "candidate_signals": inspect_dts(decoded),
             "manufacturer_panel_structure": panel_evidence_from_fdt(fdt),
