@@ -18,11 +18,15 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
+      - name: Install pinned LZ4 decoder for source validation
+        run: |
+          python3 -m venv /tmp/pe-mondrian-dtbo-venv
+          /tmp/pe-mondrian-dtbo-venv/bin/python -m pip install --disable-pip-version-check lz4==4.4.5
       - name: Confirm manufacturer DTS revision and source contracts
         run: |
           set -euo pipefail
           test "$(git -C upstream/xiaomi-dts rev-parse HEAD)" = 34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c
-          python3 -m unittest discover -s tests -v
+          /tmp/pe-mondrian-dtbo-venv/bin/python -m unittest discover -s tests -v
       - uses: actions/checkout@v4
         with:
           repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
