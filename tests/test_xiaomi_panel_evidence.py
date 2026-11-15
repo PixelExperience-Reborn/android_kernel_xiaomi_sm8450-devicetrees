@@ -259,7 +259,9 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
         report = panel_evidence_from_fdt(source)
         mode = report["panel_candidates"][0]["modes"][0]
         self.assertEqual(mode["dsc_chroma_format"], 1)
-        self.assertFalse(mode["basic_geometry_and_dsc_valid"])
+        # DSC v1.2 422, 10 bpc / 8 bpp is in the OEM Qualcomm LUT.
+        # Structural compatibility never certifies the physical panel.
+        self.assertTrue(mode["basic_geometry_and_dsc_valid"])
         self.assertFalse(report["production_panel_dts_approved"])
         default = panel_evidence_from_fdt(sample_panel_fdt())
         self.assertNotIn("dsc_chroma_format",
