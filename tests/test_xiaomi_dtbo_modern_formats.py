@@ -91,6 +91,17 @@ class XiaomiModernAndroidDtboTests(unittest.TestCase):
         self.assertEqual(output[0]["compression"], "gzip")
         self.assertEqual(output[0]["fdt"], synthetic_fdt())
 
+    def test_v2_optional_lz4_frame_decompressed_fdt(self):
+        try:
+            import lz4.frame
+        except ImportError:
+            self.skipTest("optional Python lz4.frame not installed")
+        compressed = lz4.frame.compress(synthetic_fdt())
+        output = parse_android_dtbo(
+            dtbo_image(2, compressed, flags=3), with_metadata=True)
+        self.assertEqual(output[0]["compression"], "lz4")
+        self.assertEqual(output[0]["fdt"], synthetic_fdt())
+
     def test_reject_wrong_entry_size_for_version(self):
         with self.assertRaisesRegex(ValueError, "entry size"):
             parse_android_dtbo(dtbo_image(
