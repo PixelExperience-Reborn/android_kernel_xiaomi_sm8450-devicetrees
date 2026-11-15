@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -11,6 +12,18 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 BASES = ("cape", "cape-v2", "capep")
 BOARD = "mondrian-sm8475-pm8008-overlay"
+
+
+def verify_kernel_revision(kernel, expected):
+    """Ensure compiled board evidence is tied to one real Git commit."""
+    if re.fullmatch(r"[0-9a-f]{40}", expected) is None:
+        raise ValueError("Expected kernel revision must be a lowercase 40-hex SHA")
+    actual = subprocess.check_output(
+        ["git", "-C", str(kernel), "rev-parse", "HEAD"], text=True
+    ).strip()
+    if actual != expected:
+        raise ValueError(f"Kernel commit mismatch: expected {expected}, got {actual}")
+    return actual
 
 def run(args, *, stdout=None):
     print("+", " ".join(map(str, args)), flush=True)
@@ -21,6 +34,8 @@ def main():
     parser.add_argument("--kernel", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--oem", type=Path, default=ROOT / "upstream/xiaomi-dts")
+    parser.add_argument("--expected-kernel-commit",
+                        help="Exact selected kernel SHA; defaults to OEM-only source lock")
     args = parser.parse_args()
     kernel = args.kernel.resolve()
     oem = args.oem.resolve()
@@ -31,11 +46,11 @@ def main():
     oem_head = subprocess.check_output(["git", "-C", str(oem), "rev-parse", "HEAD"], text=True).strip()
     if oem_head != lock["source_commit"]:
         parser.error(f"Xiaomi source SHA mismatch: {oem_head}")
-    kernel_head = subprocess.check_output(
-        ["git", "-C", str(kernel), "rev-parse", "HEAD"], text=True
-    ).strip()
-    if kernel_head != lock["selected_kernel_commit"]:
-        parser.error(f"Kernel commit mismatch: {kernel_head}")
+    try:
+        kernel_head = verify_kernel_revision(
+            kernel, args.expected_kernel_commit or lock["selected_kernel_commit"])
+    except ValueError as exc:
+        parser.error(str(exc))
     for tool in ("cpp", "dtc", "fdtoverlay", "fdtget"):
         if not shutil.which(tool):
             parser.error(f"Required tool is missing: {tool}")
