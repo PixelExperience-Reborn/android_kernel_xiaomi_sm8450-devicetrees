@@ -7,7 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from audit_xiaomi_panel_evidence import fdt_nodes, panel_evidence_from_fdt  # noqa: E402
+from audit_xiaomi_panel_evidence import (  # noqa: E402
+    _mode_validation, fdt_nodes, panel_evidence_from_fdt,
+)
 
 
 class FdtBuilder:
@@ -130,6 +132,70 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
         self.assertFalse(mode["physical_panel_validated"])
         self.assertFalse(output["production_panel_dts_approved"])
         self.assertNotIn("deadbeef", json.dumps(output).lower())
+
+
+    @staticmethod
+    def _valid_qualcomm_dsc_mode():
+        return {
+            "compression_mode": "dsc",
+            "refresh_hz": 120,
+            "width_px": 1440,
+            "height_px": 3200,
+            "dsc_version": 0x12,
+            "dsc_scr_version": 0,
+            "dsc_slice_width": 720,
+            "dsc_slice_height": 32,
+            "dsc_slices_per_packet": 2,
+            "dsc_bits_per_component": 10,
+            "dsc_bits_per_pixel": 8,
+        }
+
+    def test_valid_qualcomm_dsc_geometry_does_not_qualify_panel(self):
+        self.assertTrue(_mode_validation(self._valid_qualcomm_dsc_mode()))
+
+    def test_reject_one_line_dsc_slice_before_kernel_divide(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for height in (0, 1, 3201):
+            with self.subTest(height=height):
+                mode["dsc_slice_height"] = height
+                self.assertFalse(_mode_validation(mode))
+
+    def test_reject_unsupported_bpc_from_qualcomm_rate_tables(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for bpc in (1, 6, 12, 16):
+            with self.subTest(bpc=bpc):
+                mode["dsc_bits_per_component"] = bpc
+                self.assertFalse(_mode_validation(mode))
+        for bpc in (8, 10):
+            with self.subTest(accepted_bpc=bpc):
+                mode["dsc_bits_per_component"] = bpc
+                self.assertTrue(_mode_validation(mode))
+
+    def test_reject_unsupported_bpp_from_qualcomm_rate_tables(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for bpp in (0, 5, 9, 11, 24, 64):
+            with self.subTest(bpp=bpp):
+                mode["dsc_bits_per_pixel"] = bpp
+                self.assertFalse(_mode_validation(mode))
+
+    def test_reject_unsupported_dsc_version_and_scr_revision(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for version in (0x10, 0x13, 0x21, 0):
+            with self.subTest(version=version):
+                mode["dsc_version"] = version
+                self.assertFalse(_mode_validation(mode))
+        mode = self._valid_qualcomm_dsc_mode()
+        for scr in (2, 3, 255):
+            with self.subTest(scr=scr):
+                mode["dsc_scr_version"] = scr
+                self.assertFalse(_mode_validation(mode))
+
+    def test_reject_slice_width_larger_than_picture(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for width in (0, 1441, 65536):
+            with self.subTest(slice_width=width):
+                mode["dsc_slice_width"] = width
+                self.assertFalse(_mode_validation(mode))
 
     def test_invalid_zero_slice_is_rejected_without_division(self):
         output = panel_evidence_from_fdt(sample_panel_fdt(slice_width=0))

@@ -194,11 +194,19 @@ def _mode_validation(mode):
     count = mode.get("dsc_slices_per_packet")
     bpc = mode.get("dsc_bits_per_component")
     bpp = mode.get("dsc_bits_per_pixel")
-    return bool(isinstance(sw, int) and sw > 0 and width % sw == 0 and
-                isinstance(sh, int) and sh > 0 and
+    version = mode.get("dsc_version", 0x11)
+    scr = mode.get("dsc_scr_version", 0)
+    # Match the validated Qualcomm WAIPIO DSC 1.1/1.2 parser and rate
+    # tables from the pinned PE-Reborn OEM kernel. A slice height of 1
+    # reaches a divide-by-zero in sde_dsc_populate_dsc_config(), so the
+    # independent stock FDT diagnostic must never report it as valid.
+    # This is a structural check, NOT manufacturer panel qualification.
+    return bool(version in (0x11, 0x12) and scr in (0, 1) and
+                isinstance(sw, int) and 0 < sw <= width and width % sw == 0 and
+                isinstance(sh, int) and 2 <= sh <= height and
                 isinstance(count, int) and 1 <= count <= 2 and
-                isinstance(bpc, int) and 1 <= bpc <= 16 and
-                isinstance(bpp, int) and 1 <= bpp <= 24)
+                isinstance(bpc, int) and bpc in (8, 10) and
+                isinstance(bpp, int) and bpp in (6, 7, 8, 10))
 
 
 def _root_board_signals(nodes):

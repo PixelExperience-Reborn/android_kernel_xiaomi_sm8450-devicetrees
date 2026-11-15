@@ -55,3 +55,16 @@ For v1/v2 compressed FDT entries, bounded decompression is available for zlib/gz
 The `oem-m11a-panel-source-lock.json` record has `product_selection_allowed: false`. CI tests reject unreviewed M11A DTS staging while the OEM inputs and hardware evidence are missing. The audit helper is **diagnostic only**, and a panel marker in any DTB does not prove it matches the particular phone or firmware. No `dtbo.img` or flashable ROM is produced by this stage.
 
 **Still out of scope:** Camera, Video, Audio and other hardware dependencies. Production `seventeen` is unchanged.
+
+## 15 Nov 2026 — DSC structural validation aligned to pinned OEM/Qualcomm kernel
+
+The stock FDT diagnostic now follows the accepted DSC input bounds of
+`PixelExperience-Reborn/android_kernel_xiaomi_sm8450@fa31740dec88f048165420a269ae4cb10e97e2f0`,
+which has already passed its real OEM `vmlinux` + Qualcomm `msm_drm.ko`
+compile. In particular, `dsc_slice_height = 1` must be rejected before
+the kernel's `slice_height - 1` divisor. Reject unsupported 1.1/1.2
+versions, SCR revisions, component depths and integer bpp combinations not
+present in Qualcomm's rate-control tables; geometry rejection is not a
+positive panel-identification result. These checks are diagnostic only and
+do not manufacture M11A/R66451 DCS/DSC data. Source and DTBO compile CI
+must pass before declaring this gate qualified.
