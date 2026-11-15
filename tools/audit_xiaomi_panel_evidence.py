@@ -172,6 +172,27 @@ def _mode_validation(mode):
                 isinstance(bpp, int) and 1 <= bpp <= 24)
 
 
+def _root_board_signals(nodes):
+    """Whitelisted OEM FDT root selectors; no bootloader match is inferred."""
+    root = nodes.get("/", {})
+    values = {"root_compatible": [], "raw_root_id_cells": {},
+              "stock_board_revision_verified": False}
+    compatible = root.get("compatible", b"")
+    if 0 < len(compatible) <= 4096 and compatible.endswith(b"\x00"):
+        names = compatible[:-1].split(b"\x00")
+        if len(names) <= 32:
+            decoded = [n.decode("utf-8", "replace") for n in names]
+            if all(n and n.isprintable() for n in decoded):
+                values["root_compatible"] = decoded
+    for key in ("qcom,msm-id", "qcom,board-id", "xiaomi,miboard-id"):
+        data = root.get(key, b"")
+        if not data or len(data) % 4 or len(data) > 256:
+            continue
+        cells = struct.unpack(">" + "I" * (len(data) // 4), data)
+        values["raw_root_id_cells"][key] = [f"0x{value:08x}" for value in cells]
+    return values
+
+
 def panel_evidence_from_fdt(fdt):
     nodes = fdt_nodes(fdt)
     panels = []
@@ -218,6 +239,7 @@ def panel_evidence_from_fdt(fdt):
         panels.append(panel)
     return {
         "stock_fdt_sha256": hashlib.sha256(fdt).hexdigest(),
+        "root_board_signals": _root_board_signals(nodes),
         "panel_candidates": panels,
         "panel_candidate_count": len(panels),
         "device_panel_revision_verified": False,
