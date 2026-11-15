@@ -142,6 +142,39 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
         self.assertFalse(result["panel_candidates"][0][
             "xiaomi_local_hbm_property_present"])
 
+    def test_root_xiaomi_board_identity_is_reported_without_claiming_match(self):
+        builder = FdtBuilder()
+        builder.begin("")
+        builder.prop("compatible", b"qcom,cape-mtp\x00qcom,cape\x00")
+        builder.cells("qcom,msm-id", 530, 0x10000, 531, 0x10000)
+        builder.cells("qcom,board-id", 0x10008, 0)
+        builder.cells("xiaomi,miboard-id", 0xE, 0)
+        builder.begin("other@0")
+        builder.cells("xiaomi,miboard-id", 0xDEADBEEF)
+        builder.end()
+        builder.end()
+        output = panel_evidence_from_fdt(builder.build())
+        selectors = output["root_board_signals"]
+        self.assertEqual(selectors["root_compatible"],
+                         ["qcom,cape-mtp", "qcom,cape"])
+        self.assertEqual(selectors["raw_root_id_cells"]["xiaomi,miboard-id"],
+                         ["0x0000000e", "0x00000000"])
+        self.assertEqual(selectors["raw_root_id_cells"]["qcom,msm-id"],
+                         ["0x00000212", "0x00010000",
+                          "0x00000213", "0x00010000"])
+        self.assertFalse(selectors["stock_board_revision_verified"])
+        self.assertEqual(output["panel_candidate_count"], 0)
+
+    def test_non_u32_or_oversize_board_selector_is_not_misinterpreted(self):
+        builder = FdtBuilder()
+        builder.begin("")
+        builder.prop("xiaomi,miboard-id", b"bad")
+        builder.end()
+        selectors = panel_evidence_from_fdt(
+            builder.build())["root_board_signals"]
+        self.assertNotIn("xiaomi,miboard-id", selectors["raw_root_id_cells"])
+        self.assertFalse(selectors["stock_board_revision_verified"])
+
     def test_non_panel_fdt_does_not_claim_m11a(self):
         dt = FdtBuilder()
         dt.begin("")
