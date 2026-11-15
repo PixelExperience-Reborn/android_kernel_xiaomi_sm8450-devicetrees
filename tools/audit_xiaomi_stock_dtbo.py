@@ -11,6 +11,7 @@ import json
 import shutil
 import struct
 import subprocess
+import zlib
 
 # Imported lazily below: panel parser also imports the minimal FDT header
 # validator from this module, avoiding an import cycle.
