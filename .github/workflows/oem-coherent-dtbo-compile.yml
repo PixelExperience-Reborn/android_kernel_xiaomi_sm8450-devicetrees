@@ -1,0 +1,65 @@
+name: Compile mondrian OEM Cape DTB against coherent OEM+Display kernel
+
+on:
+  push:
+    branches: [bringup/a17-mondrian-oem-bsp-20261111]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oem-dtb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Install pinned LZ4 decoder for source validation
+        run: |
+          python3 -m venv /tmp/pe-mondrian-dtbo-venv
+          /tmp/pe-mondrian-dtbo-venv/bin/python -m pip install --disable-pip-version-check lz4==4.4.5
+      - name: Confirm manufacturer DTS revision and source contracts
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream/xiaomi-dts rev-parse HEAD)" = 34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c
+          /tmp/pe-mondrian-dtbo-venv/bin/python -m unittest discover -s tests -v
+      - uses: actions/checkout@v4
+        with:
+          repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
+          ref: 69c3911404debdfab1eb484aaa626b319b9d93d7
+          path: kernel
+          persist-credentials: false
+      - name: Install Device Tree tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends device-tree-compiler gcc
+      - name: Compile Cape DTBs against exact coherent kernel and apply mondrian overlay
+        run: |
+          set -euo pipefail
+          test "$(git -C kernel rev-parse HEAD)" = 69c3911404debdfab1eb484aaa626b319b9d93d7
+          grep -Fx 'SUBLEVEL = 81' kernel/Makefile
+          python3 tools/build_oem_dtbo.py --kernel kernel \
+            --expected-kernel-commit 69c3911404debdfab1eb484aaa626b319b9d93d7 \
+            --out /tmp/mondrian-dt
+      - name: Publish diagnostic compiled DTBs and board overlays
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-coherent-oem-board-dtb-diagnostic
+          path: |
+            /tmp/mondrian-dt/images/*.dtb
+            /tmp/mondrian-dt/images/*.dtbo
+            /tmp/mondrian-dt/dtbo-diagnostic-evidence.json
+          retention-days: 7
+      - name: Retain preprocessed DTS if build fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-coherent-dtb-build-inputs
+          path: /tmp/mondrian-dt/*.preprocessed.dts
+          if-no-files-found: ignore
+          retention-days: 5
