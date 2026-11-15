@@ -68,3 +68,16 @@ present in Qualcomm's rate-control tables; geometry rejection is not a
 positive panel-identification result. These checks are diagnostic only and
 do not manufacture M11A/R66451 DCS/DSC data. Source and DTBO compile CI
 must pass before declaring this gate qualified.
+
+## Manufacturer DSC rate-control compatibility gate
+
+Pinned against OEM/Qualcomm Kernel `fa31740dec88f048165420a269ae4cb10e97e2f0`,
+the read-only FDT analyzer now accepts only the exact DSC version, chroma
+sampling, bit-depth and bitrate tuples in `msm/sde_dsc_helper.c`
+(`sde_dsc_index_map`). The `qcom,src-chroma-format` value is captured
+as a whitelisted numeric field: Qualcomm `msm_drv.h` defines RGB 444 as
+0, 422 as 1, and 420 as 2, and `dsi_panel.c` defaults to 444 when it is
+absent. Unknown formats and odd-width subsampled slices fail closed.
+A result indicating structurally supported rate control is **not** a
+manufacturer panel identity check, does not enable LHBM and cannot approve
+a production DTBO. No proprietary DCS payloads are exported.

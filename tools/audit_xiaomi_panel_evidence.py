@@ -32,7 +32,21 @@ MODE_U32_KEYS = {
     "qcom,mdss-dsc-slice-per-pkt": "dsc_slices_per_packet",
     "qcom,mdss-dsc-bit-per-component": "dsc_bits_per_component",
     "qcom,mdss-dsc-bit-per-pixel": "dsc_bits_per_pixel",
+    "qcom,src-chroma-format": "dsc_chroma_format",
 }
+# Exactly the rate-control LUT combinations in the selected Qualcomm
+# sde_dsc_helper.c, pinned by the OEM kernel commit fa31740dec88f048.
+# Keys: (DSC major.minor property, MSM_CHROMA_444/422/420 value).
+# Deliberately do not accept a bit depth or bitrate merely because it is
+# numerically in range: the DRM lookup otherwise returns -EINVAL.
+QUALCOMM_WAIPIO_DSC_RATES = {
+    (0x11, 0): frozenset({(8, 8), (10, 8), (10, 10)}),
+    (0x12, 0): frozenset({(8, 8), (10, 8), (10, 10)}),
+    (0x12, 1): frozenset({(8, 7), (8, 8), (10, 7), (10, 8),
+                          (10, 10)}),
+    (0x12, 2): frozenset({(8, 6), (10, 6)}),
+}
+
 PANEL_U32_KEYS = {"qcom,mdss-dsi-bl-max-level": "backlight_max_level",
                   "qcom,mdss-dsi-bl-min-level": "backlight_min_level"}
 
@@ -196,17 +210,26 @@ def _mode_validation(mode):
     bpp = mode.get("dsc_bits_per_pixel")
     version = mode.get("dsc_version", 0x11)
     scr = mode.get("dsc_scr_version", 0)
-    # Match the validated Qualcomm WAIPIO DSC 1.1/1.2 parser and rate
-    # tables from the pinned PE-Reborn OEM kernel. A slice height of 1
-    # reaches a divide-by-zero in sde_dsc_populate_dsc_config(), so the
-    # independent stock FDT diagnostic must never report it as valid.
-    # This is a structural check, NOT manufacturer panel qualification.
-    return bool(version in (0x11, 0x12) and scr in (0, 1) and
-                isinstance(sw, int) and 0 < sw <= width and width % sw == 0 and
-                isinstance(sh, int) and 2 <= sh <= height and
-                isinstance(count, int) and 1 <= count <= 2 and
-                isinstance(bpc, int) and bpc in (8, 10) and
-                isinstance(bpp, int) and bpp in (6, 7, 8, 10))
+    # msm_drv.h in the pinned Qualcomm Display defines 444=0, 422=1,
+    # 420=2. Missing FDT property defaults to 444 in dsi_panel.c.
+    chroma = mode.get("dsc_chroma_format", 0)
+    # A one-line slice reaches a divide-by-zero in
+    # sde_dsc_populate_dsc_config(). For subsampled chroma the helper
+    # halves slice_width: an odd or one-pixel slice is not safe.
+    if not (isinstance(sw, int) and 0 < sw <= width and width % sw == 0 and
+            isinstance(sh, int) and 2 <= sh <= height and
+            isinstance(count, int) and 1 <= count <= 2 and
+            isinstance(version, int) and version in (0x11, 0x12) and
+            isinstance(scr, int) and scr in (0, 1) and
+            isinstance(chroma, int) and chroma in (0, 1, 2) and
+            (chroma == 0 or sw % 2 == 0)):
+        return False
+    # Qualcomm's exact _get_rc_table_index() accepts these combinations,
+    # not every bpc/bpp independently. DSC 1.1 supports only RGB 444.
+    # Missing or invalid values fail closed; neither this check nor the
+    # presence of a manufacturer's FDT proves the physical panel variant.
+    return (bpc, bpp) in QUALCOMM_WAIPIO_DSC_RATES.get(
+        (version, chroma), frozenset())
 
 
 def _root_board_signals(nodes):

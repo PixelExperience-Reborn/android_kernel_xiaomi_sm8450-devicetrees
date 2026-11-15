@@ -63,7 +63,8 @@ class FdtBuilder:
         return header + reserve + bytes(self.structure) + bytes(self.strings)
 
 
-def sample_panel_fdt(*, slice_width=500, outside_hbm=False):
+def sample_panel_fdt(*, slice_width=500, outside_hbm=False,
+                     chroma_format=None):
     dt = FdtBuilder()
     dt.begin("")
     dt.begin("soc")
@@ -84,6 +85,8 @@ def sample_panel_fdt(*, slice_width=500, outside_hbm=False):
     dt.cells("qcom,mdss-dsi-panel-width", 1000)
     dt.cells("qcom,mdss-dsi-panel-height", 2000)
     dt.string("qcom,compression-mode", "dsc")
+    if chroma_format is not None:
+        dt.cells("qcom,src-chroma-format", chroma_format)
     dt.cells("qcom,mdss-dsc-version", 0x12)
     dt.cells("qcom,mdss-dsc-slice-width", slice_width)
     dt.cells("qcom,mdss-dsc-slice-height", 32)
@@ -196,6 +199,71 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
             with self.subTest(slice_width=width):
                 mode["dsc_slice_width"] = width
                 self.assertFalse(_mode_validation(mode))
+
+    def test_exact_qualcomm_dsc_11_rgb_rate_control_combinations(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        mode["dsc_version"] = 0x11
+        for bpc, bpp in ((8, 8), (10, 8), (10, 10)):
+            with self.subTest(bpc=bpc, bpp=bpp):
+                mode["dsc_bits_per_component"] = bpc
+                mode["dsc_bits_per_pixel"] = bpp
+                self.assertTrue(_mode_validation(mode))
+        for bpc, bpp in ((8, 7), (10, 7), (8, 10), (10, 6)):
+            with self.subTest(unsupported=(bpc, bpp)):
+                mode["dsc_bits_per_component"] = bpc
+                mode["dsc_bits_per_pixel"] = bpp
+                self.assertFalse(_mode_validation(mode))
+
+    def test_exact_qualcomm_dsc_12_422_rate_control_combinations(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        mode["dsc_chroma_format"] = 1  # MSM_CHROMA_422 in drm msm_drv.h
+        for bpc, bpp in ((8, 7), (8, 8), (10, 7), (10, 8), (10, 10)):
+            with self.subTest(valid=(bpc, bpp)):
+                mode["dsc_bits_per_component"] = bpc
+                mode["dsc_bits_per_pixel"] = bpp
+                self.assertTrue(_mode_validation(mode))
+        mode["dsc_bits_per_pixel"] = 6
+        self.assertFalse(_mode_validation(mode))
+        mode["dsc_version"] = 0x11
+        mode["dsc_bits_per_pixel"] = 8
+        self.assertFalse(_mode_validation(mode))
+
+    def test_exact_qualcomm_dsc_12_420_rate_control_combinations(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        mode["dsc_chroma_format"] = 2  # MSM_CHROMA_420 in drm msm_drv.h
+        mode["dsc_bits_per_pixel"] = 6
+        for bpc in (8, 10):
+            with self.subTest(bpc=bpc):
+                mode["dsc_bits_per_component"] = bpc
+                self.assertTrue(_mode_validation(mode))
+        for bpp in (7, 8, 10):
+            with self.subTest(unsupported_bpp=bpp):
+                mode["dsc_bits_per_pixel"] = bpp
+                self.assertFalse(_mode_validation(mode))
+
+    def test_reject_unsupported_chroma_and_subsampled_slice_geometry(self):
+        mode = self._valid_qualcomm_dsc_mode()
+        for invalid in (3, 255, -1):
+            with self.subTest(chroma=invalid):
+                mode["dsc_chroma_format"] = invalid
+                self.assertFalse(_mode_validation(mode))
+        mode["dsc_chroma_format"] = 2
+        mode["dsc_bits_per_pixel"] = 6
+        for sw in (1, 3, 5):
+            with self.subTest(slice_width=sw):
+                mode["dsc_slice_width"] = sw
+                self.assertFalse(_mode_validation(mode))
+
+    def test_stock_fdt_chroma_is_reported_not_assumed(self):
+        source = sample_panel_fdt(chroma_format=1)
+        report = panel_evidence_from_fdt(source)
+        mode = report["panel_candidates"][0]["modes"][0]
+        self.assertEqual(mode["dsc_chroma_format"], 1)
+        self.assertFalse(mode["basic_geometry_and_dsc_valid"])
+        self.assertFalse(report["production_panel_dts_approved"])
+        default = panel_evidence_from_fdt(sample_panel_fdt())
+        self.assertNotIn("dsc_chroma_format",
+                         default["panel_candidates"][0]["modes"][0])
 
     def test_invalid_zero_slice_is_rejected_without_division(self):
         output = panel_evidence_from_fdt(sample_panel_fdt(slice_width=0))
