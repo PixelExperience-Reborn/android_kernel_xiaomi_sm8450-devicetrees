@@ -44,6 +44,12 @@
 5. Independently implement a **native mondrian panel definition** compatible with the selected OEM kernel, exact Qualcomm SDE/DSI and Android 17 userspace. Keep provenance, reviewed adaptation diffs, real test cases and actual hardware validation. No placeholder DCS commands or forced feature-disable are permitted.
 6. Only after OEM source authenticity, panel revision and all dependencies are proven: review the `oem-m11a-panel-source-lock.json` gate and approve changes to shipping DTS/build scripts. Re-run actual Cape/board `fdtoverlay`, `msm_drm.ko`/KMI, Goodix UDFPS/LHBM, module load order, AOSP17 HWC/VINTF/SELinux and real mondrian tests.
 
+## DTBO format handling from official AOSP
+
+The manufacturer `dtbo.img` must be interpreted with the AOSP `dt_table_header` and per-entry metadata, not by matching strings in the raw compressed partition. As documented by [AOSP DTB/DTBO partitions](https://source.android.com/docs/core/architecture/dto/partitions) and the [official `mkdtboimg.py` table encoder](https://android.googlesource.com/platform/system/libufdt/+/refs/heads/main-kernel-2025/utils/src/mkdtboimg.py), the read-only Xiaomi analyzer accepts valid **v0, v1 and v2** table layouts (32/32/64-byte entries, respectively). The diagnostic JSON preserves each entry's `id`, `rev`, `custom[]`, table version, flags and compression type as reported; the bootloader SKU match is **not inferred** from those numbers without independent OEM evidence.
+
+For v1/v2 compressed FDT entries, bounded decompression is available for zlib/gzip. Optional **LZ4 frame** handling requires `python3 -m pip install lz4` in the local audit environment; the analyzer fails closed if that dependency is absent. Compressed data must decode to a valid FDT, with no hidden trailing nonzero data. Read-only extraction does not establish authenticity, matching `mondrian` panel revision, physical 60/90/120 Hz capability, UDFPS LHBM behavior or production eligibility. The real stock Xiaomi Fastboot input remains a required separate step.
+
 ## Fail-closed status
 
 The `oem-m11a-panel-source-lock.json` record has `product_selection_allowed: false`. CI tests reject unreviewed M11A DTS staging while the OEM inputs and hardware evidence are missing. The audit helper is **diagnostic only**, and a panel marker in any DTB does not prove it matches the particular phone or firmware. No `dtbo.img` or flashable ROM is produced by this stage.
