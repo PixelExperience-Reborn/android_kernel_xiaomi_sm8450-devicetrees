@@ -8,6 +8,7 @@ Nothing extracted is committed to the device tree or made flashable.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import tarfile
 import tempfile
@@ -96,14 +97,15 @@ def audit_fastboot_package(package, expected_sha256, output):
         raise ValueError("manufacturer source-package checksum mismatch")
     partitions = read_mondrian_boot_partitions(package)
     member_path, dtbo_data = partitions["dtbo.img"]
-    output.mkdir(parents=True, exist_ok=True)
-    # Existing DTBO audit accepts a local path; use a disposable file outside
-    # the repo and remove the raw OEM image after obtaining JSON evidence.
+    # All analyses must succeed before anything is published to the output
+    # folder. A malformed vendor_boot must not leave a stale partial DTBO
+    # report that could be mistaken for completed manufacturer evidence.
     with tempfile.TemporaryDirectory(prefix="pe-mondrian-stock-") as work:
-        extracted = Path(work) / "dtbo.img"
+        work_path = Path(work)
+        extracted = work_path / "dtbo.img"
         extracted.write_bytes(dtbo_data)
-        result_path = audit(extracted, package_sha256=actual, output=output)
-    evidence = json.loads(result_path.read_text())
+        result_path = audit(extracted, package_sha256=actual, output=work_path)
+        evidence = json.loads(result_path.read_text())
     if "vendor_boot.img" in partitions:
         vendor_member, vendor_data = partitions["vendor_boot.img"]
         evidence["stock_vendor_boot"] = audit_vendor_boot_data(vendor_data)
@@ -122,8 +124,26 @@ def audit_fastboot_package(package, expected_sha256, output):
         "manufacturer_panel_parameters_verified": False,
         "m11a_product_selection_allowed": False,
     })
-    result_path.write_text(json.dumps(evidence, indent=2) + "\n")
-    return result_path
+    # Publish one complete diagnostic report, atomically replacing any prior
+    # result only after both partitions and the archive pass validation.
+    output.mkdir(parents=True, exist_ok=True)
+    final_report = output / "xiaomi-stock-dtbo-diagnostic.json"
+    temporary_report = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output,
+            prefix=".mondrian-audit-", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary_report = Path(stream.name)
+            json.dump(evidence, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_report, final_report)
+    finally:
+        if temporary_report is not None:
+            temporary_report.unlink(missing_ok=True)
+    return final_report
 
 
 def main():

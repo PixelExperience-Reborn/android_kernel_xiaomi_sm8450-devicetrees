@@ -176,6 +176,71 @@ class XiaomiFastbootAuditTests(unittest.TestCase):
         self.assertFalse(metadata["stock_vendor_boot"]["present"])
         self.assertFalse(list(dest.glob("*.img")))
 
+    def test_corrupt_vendor_boot_cannot_leave_partial_report(self):
+        # A syntactically valid-looking tar is not equivalent to a valid
+        # Xiaomi vendor_boot image. No final report may be committed early.
+        tar_package(self.package, [
+            (STOCK_MEMBER, fake_dtb()),
+            (STOCK_ROOT + "/images/vendor_boot.img", b"WRONGMAG" + b"\x00" * 2112),
+        ])
+        dest = Path(self.work.name) / "failed-audit"
+
+        def mock_dtbo(image, *, package_sha256, output):
+            path = output / "xiaomi-stock-dtbo-diagnostic.json"
+            path.write_text(json.dumps({"dtbo_only": True}))
+            return path
+
+        with patch("audit_xiaomi_fastboot_package.audit", side_effect=mock_dtbo):
+            with self.assertRaisesRegex(ValueError, "invalid AOSP vendor_boot"):
+                audit_fastboot_package(self.package, sha256_file(self.package), dest)
+        self.assertFalse((dest / "xiaomi-stock-dtbo-diagnostic.json").exists())
+        self.assertFalse(list(dest.glob(".mondrian-audit-*")))
+
+    def test_failed_vendor_boot_preserves_previous_verified_report(self):
+        tar_package(self.package, [
+            (STOCK_MEMBER, fake_dtb()),
+            (STOCK_ROOT + "/images/vendor_boot.img", b"WRONGMAG" + b"\x00" * 2112),
+        ])
+        dest = Path(self.work.name) / "existing-audit"
+        dest.mkdir()
+        old = dest / "xiaomi-stock-dtbo-diagnostic.json"
+        previous_bytes = b'{"previous": "complete"}\n'
+        old.write_bytes(previous_bytes)
+
+        def mock_dtbo(image, *, package_sha256, output):
+            path = output / "xiaomi-stock-dtbo-diagnostic.json"
+            path.write_text('{"partial": true}\n')
+            return path
+
+        with patch("audit_xiaomi_fastboot_package.audit", side_effect=mock_dtbo):
+            with self.assertRaises(ValueError):
+                audit_fastboot_package(self.package, sha256_file(self.package), dest)
+        self.assertEqual(old.read_bytes(), previous_bytes)
+        self.assertFalse(list(dest.glob("*.img")))
+        self.assertFalse(list(dest.glob(".mondrian-audit-*")))
+
+    def test_completed_audit_replaces_old_report_without_leaking_raw_images(self):
+        tar_package(self.package, [(STOCK_MEMBER, fake_dtb())])
+        dest = Path(self.work.name) / "completed-audit"
+        dest.mkdir()
+        old = dest / "xiaomi-stock-dtbo-diagnostic.json"
+        old.write_text('{"stale": true}')
+
+        def mock_dtbo(image, *, package_sha256, output):
+            path = output / "xiaomi-stock-dtbo-diagnostic.json"
+            path.write_text(json.dumps({"dtbo_valid": True}))
+            return path
+
+        with patch("audit_xiaomi_fastboot_package.audit", side_effect=mock_dtbo):
+            result = audit_fastboot_package(
+                self.package, sha256_file(self.package), dest)
+        report = json.loads(result.read_text())
+        self.assertTrue(report["dtbo_valid"])
+        self.assertNotIn("stale", report)
+        self.assertFalse(report["m11a_product_selection_allowed"])
+        self.assertFalse(list(dest.glob("*.img")))
+        self.assertFalse(list(dest.glob(".mondrian-audit-*")))
+
     def test_integrated_vendor_boot_audit_remains_diagnostic_only(self):
         vendor_payload = b"VNDRBOOT" + b"\x00" * 2112
         tar_package(self.package, [
