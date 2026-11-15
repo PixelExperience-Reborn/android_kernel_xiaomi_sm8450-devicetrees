@@ -96,6 +96,19 @@ def sample_panel_fdt(*, slice_width=500, outside_hbm=False):
     return dt.build()
 
 
+def with_synthetic_memreserve(fdt, entries):
+    """Replace the standard zero reservation map and adjust FDT offsets."""
+    raw = bytearray(fdt)
+    replacement = b"".join(struct.pack(">QQ", address, size)
+                           for address, size in entries)
+    delta = len(replacement) - 16
+    raw[40:56] = replacement
+    for header_offset in (4, 8, 12):  # totalsize, struct, strings
+        struct.pack_into(">I", raw, header_offset,
+                         struct.unpack_from(">I", raw, header_offset)[0] + delta)
+    return bytes(raw)
+
+
 class ManufacturerPanelEvidenceTests(unittest.TestCase):
     def test_read_numeric_panel_and_dsc_properties_without_command_payload(self):
         blob = sample_panel_fdt()
@@ -185,6 +198,49 @@ class ManufacturerPanelEvidenceTests(unittest.TestCase):
         result = panel_evidence_from_fdt(dt.build())
         self.assertEqual(result["panel_candidate_count"], 0)
         self.assertFalse(result["production_panel_dts_approved"])
+
+    def test_accept_real_format_64_bit_memory_reservation_and_terminator(self):
+        fdt = with_synthetic_memreserve(sample_panel_fdt(), (
+            (0x100000000, 0x2000), (0x100004000, 0x1000), (0, 0)))
+        self.assertEqual(panel_evidence_from_fdt(fdt)["panel_candidate_count"], 1)
+
+    def test_reject_unterminated_memory_reservation_map(self):
+        fdt = with_synthetic_memreserve(sample_panel_fdt(), (
+            (0x100000000, 0x1000),))
+        with self.assertRaisesRegex(ValueError, "unterminated.*reservation"):
+            fdt_nodes(fdt)
+
+    def test_reject_overlapping_memory_reservation_ranges(self):
+        fdt = with_synthetic_memreserve(sample_panel_fdt(), (
+            (0x1000, 0x2000), (0x2000, 0x1000), (0, 0)))
+        with self.assertRaisesRegex(ValueError, "overlapping.*reservation"):
+            fdt_nodes(fdt)
+
+    def test_reject_memory_reservation_map_inside_structure(self):
+        fdt = bytearray(sample_panel_fdt())
+        struct.pack_into(">I", fdt, 16, struct.unpack_from(">I", fdt, 8)[0])
+        with self.assertRaisesRegex(ValueError, "reservation map overlaps"):
+            fdt_nodes(fdt)
+
+    def test_reject_unaligned_memory_reservation_map(self):
+        fdt = bytearray(sample_panel_fdt())
+        struct.pack_into(">I", fdt, 16, 41)
+        with self.assertRaisesRegex(ValueError, "outside aligned bounds"):
+            fdt_nodes(fdt)
+
+    def test_reject_zero_length_or_overflowing_memory_reservations(self):
+        for item in ((0x1000, 0), (0xfffffffffffffff0, 0x100)):
+            with self.subTest(item=item):
+                fdt = with_synthetic_memreserve(sample_panel_fdt(), (
+                    item, (0, 0)))
+                with self.assertRaisesRegex(ValueError, "invalid.*reservation range"):
+                    fdt_nodes(fdt)
+
+    def test_reject_unrecognized_future_fdt_header_version(self):
+        fdt = bytearray(sample_panel_fdt())
+        struct.pack_into(">I", fdt, 20, 99)
+        with self.assertRaisesRegex(ValueError, "unsupported FDT header"):
+            fdt_nodes(fdt)
 
     def test_reject_wrong_fdt_root(self):
         dt = FdtBuilder()

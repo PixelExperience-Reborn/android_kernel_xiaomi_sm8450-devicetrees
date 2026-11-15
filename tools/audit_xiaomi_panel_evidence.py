@@ -19,6 +19,7 @@ FDT_END = 9
 MAX_NODES = 50000
 MAX_PROPS = 250000
 MAX_STRING = 256
+MAX_RESERVATIONS = 4096
 
 MODE_U32_KEYS = {
     "qcom,mdss-dsi-panel-framerate": "refresh_hz",
@@ -75,7 +76,7 @@ def fdt_nodes(fdt):
     (magic, size, offset_struct, offset_strings, offset_reserve, version,
      last_comp, _boot_cpuid, strings_len, struct_len) = struct.unpack_from(
          ">10I", blob, 0)
-    if magic != FDT_MAGIC or size != len(blob) or version < 17 or last_comp > 17:
+    if magic != FDT_MAGIC or size != len(blob) or version != 17 or last_comp > 17:
         raise ValueError("unsupported FDT header or version")
     if (offset_struct % 4 or offset_reserve % 8 or struct_len % 4 or
             offset_struct < 40 or offset_reserve < 40 or
@@ -88,6 +89,34 @@ def fdt_nodes(fdt):
     if (offset_struct < offset_strings + strings_len and
             offset_strings < offset_struct + struct_len):
         raise ValueError("overlapping FDT structure and strings blocks")
+    # DTSpec 5.3: the 8-byte-aligned reserve map consists of big-endian
+    # (u64 address, u64 size) pairs, terminated by a zero/zero pair.
+    # Do not accept an unbounded map that runs into an FDT data block.
+    reserve_limit = size
+    for begin, end in ((offset_struct, offset_struct + struct_len),
+                       (offset_strings, offset_strings + strings_len)):
+        if begin <= offset_reserve < end:
+            raise ValueError("FDT memory reservation map overlaps a data block")
+        if begin >= offset_reserve:
+            reserve_limit = min(reserve_limit, begin)
+    ranges = []
+    terminated = False
+    for reserved_offset in range(offset_reserve, reserve_limit, 16):
+        if reserved_offset + 16 > reserve_limit:
+            break
+        address, length = struct.unpack_from(">QQ", blob, reserved_offset)
+        if address == 0 and length == 0:
+            terminated = True
+            break
+        if not length or address + length > (1 << 64):
+            raise ValueError("invalid FDT memory reservation range")
+        if any(address < end and start < address + length for start, end in ranges):
+            raise ValueError("overlapping FDT memory reservation ranges")
+        ranges.append((address, address + length))
+        if len(ranges) > MAX_RESERVATIONS:
+            raise ValueError("excessive FDT memory reservations")
+    if not terminated:
+        raise ValueError("unterminated FDT memory reservation map")
     struct_end = offset_struct + struct_len
     strings_end = offset_strings + strings_len
     nodes = {}
