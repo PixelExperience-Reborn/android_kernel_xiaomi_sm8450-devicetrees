@@ -53,8 +53,9 @@ class XiaomiStockDtboTests(unittest.TestCase):
 
     def test_reject_unreviewed_android_dt_table_version(self):
         data = bytearray(mock_android_dtbo(mock_fdt()))
-        struct.pack_into(">I", data, 28, 1)
-        with self.assertRaises(ValueError):
+        # AOSP now specifies v0, v1 and v2. Version 3 is not specified.
+        struct.pack_into(">I", data, 28, 3)
+        with self.assertRaisesRegex(ValueError, "unsupported Android DT table version"):
             parse_android_dtbo(data)
 
     def test_reject_image_too_short(self):
