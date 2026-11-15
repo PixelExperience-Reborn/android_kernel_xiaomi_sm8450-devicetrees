@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
-          ref: 69c3911404debdfab1eb484aaa626b319b9d93d7
+          ref: fa31740dec88f048165420a269ae4cb10e97e2f0
           path: kernel
           persist-credentials: false
       - name: Install Device Tree tools
@@ -40,10 +40,10 @@ jobs:
       - name: Compile Cape DTBs against exact coherent kernel and apply mondrian overlay
         run: |
           set -euo pipefail
-          test "$(git -C kernel rev-parse HEAD)" = 69c3911404debdfab1eb484aaa626b319b9d93d7
+          test "$(git -C kernel rev-parse HEAD)" = fa31740dec88f048165420a269ae4cb10e97e2f0
           grep -Fx 'SUBLEVEL = 81' kernel/Makefile
           python3 tools/build_oem_dtbo.py --kernel kernel \
-            --expected-kernel-commit 69c3911404debdfab1eb484aaa626b319b9d93d7 \
+            --expected-kernel-commit fa31740dec88f048165420a269ae4cb10e97e2f0 \
             --out /tmp/mondrian-dt
       - name: Publish diagnostic compiled DTBs and board overlays
         if: success()
