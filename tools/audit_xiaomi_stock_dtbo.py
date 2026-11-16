@@ -183,6 +183,7 @@ def audit(dtbo_path, *, package_sha256, output):
         raise RuntimeError("dtc is required to inspect FDT properties")
     output.mkdir(parents=True, exist_ok=True)
     from audit_xiaomi_panel_evidence import panel_evidence_from_fdt
+    from audit_xiaomi_camera_evidence import camera_flash_evidence_from_fdt
     results = []
     for entry in entries:
         index = entry["index"]
@@ -202,6 +203,7 @@ def audit(dtbo_path, *, package_sha256, output):
             "dtb_sha256": hashlib.sha256(fdt).hexdigest(),
             "candidate_signals": inspect_dts(decoded),
             "manufacturer_panel_structure": panel_evidence_from_fdt(fdt),
+            "manufacturer_camera_flash_structure": camera_flash_evidence_from_fdt(fdt),
         }
         results.append(record)
     evidence = {
