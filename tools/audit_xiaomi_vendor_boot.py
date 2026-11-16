@@ -16,6 +16,7 @@ import subprocess
 
 from audit_xiaomi_stock_dtbo import FDT_MAGIC, inspect_dts, parse_fdt
 from audit_xiaomi_panel_evidence import panel_evidence_from_fdt
+from audit_xiaomi_camera_evidence import camera_flash_evidence_from_fdt
 
 MAGIC = b"VNDRBOOT"
 V3_HEADER_SIZE = 2112
@@ -101,7 +102,7 @@ def parse_vendor_boot(image):
 
 
 def audit_vendor_boot_data(data):
-    """Summarize only original DTB SHA256 and candidate panel indicators."""
+    """Summarize OEM DTB hashes and candidate panel/Camera FDT evidence only."""
     header, dtbs = parse_vendor_boot(data)
     if dtbs and not shutil.which("dtc"):
         raise RuntimeError("dtc is required for vendor_boot DTB inspection")
@@ -116,6 +117,11 @@ def audit_vendor_boot_data(data):
             "dtb_sha256": hashlib.sha256(blob).hexdigest(),
             "candidate_signals": inspect_dts(decoded),
             "manufacturer_panel_structure": panel_evidence_from_fdt(blob),
+            # Identical bounded structural parser as the stock DTBO audit.
+            # External __fixups__ are unresolved until the verified base DTB
+            # is merged; an observed PM8350C LED mask is not board approval.
+            "manufacturer_camera_flash_structure":
+                camera_flash_evidence_from_fdt(blob),
         })
     return {
         "present": True,

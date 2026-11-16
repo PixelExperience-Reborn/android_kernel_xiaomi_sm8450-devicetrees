@@ -16,6 +16,8 @@ from audit_xiaomi_fastboot_package import (  # noqa: E402
     audit_fastboot_package, read_mondrian_boot_partitions,
     read_mondrian_dtbo, sha256_file,
 )
+from test_xiaomi_camera_evidence import build_camera_fdt  # noqa: E402
+from test_xiaomi_vendor_boot import vendor_boot_fixture  # noqa: E402
 
 STOCK_ROOT = "mondrian_global_images_OS3.0.5.0.VMNMIXM_TEST_15.0_global"
 STOCK_MEMBER = STOCK_ROOT + "/images/dtbo.img"
@@ -240,6 +242,44 @@ class XiaomiFastbootAuditTests(unittest.TestCase):
         self.assertFalse(report["m11a_product_selection_allowed"])
         self.assertFalse(list(dest.glob("*.img")))
         self.assertFalse(list(dest.glob(".mondrian-audit-*")))
+
+    def test_stock_fastboot_combines_camera_evidence_from_vendor_boot(self):
+        # Archive + vendor_boot integration, not real Xiaomi source evidence.
+        stock_vendor = vendor_boot_fixture(
+            4, dtbs=[build_camera_fdt(unresolved=True, mask=9)])
+        tar_package(self.package, [
+            (STOCK_MEMBER, fake_dtb()),
+            (STOCK_ROOT + "/images/vendor_boot.img", stock_vendor),
+        ])
+        destination = Path(self.work.name) / "camera_from_vendor_boot"
+
+        def mock_dtbo(image, *, package_sha256, output):
+            self.assertEqual(image.read_bytes(), fake_dtb())
+            report = output / "xiaomi-stock-dtbo-diagnostic.json"
+            report.write_text(json.dumps({
+                "entries": [],
+                "production_dtbo_approved": False,
+            }))
+            return report
+
+        with patch("audit_xiaomi_fastboot_package.audit", side_effect=mock_dtbo):
+            with patch("audit_xiaomi_vendor_boot.shutil.which",
+                       return_value="dtc"):
+                with patch("audit_xiaomi_vendor_boot.subprocess.run") as run:
+                    run.return_value.stdout = b"synthetic stock Camera DTB;"
+                    out = audit_fastboot_package(
+                        self.package, sha256_file(self.package), destination)
+        report = json.loads(out.read_text())
+        self.assertEqual(report["entries"], [])
+        self.assertEqual(report["stock_vendor_boot"]["embedded_dtb_count"], 1)
+        flash = report["stock_vendor_boot"]["embedded_dtbs"][0][
+            "manufacturer_camera_flash_structure"]
+        self.assertEqual(flash["camera_flash_node_count"], 1)
+        self.assertEqual(flash["unresolved_source_reference_count"], 1)
+        self.assertFalse(flash["camera_dtbo_safe_for_product"])
+        self.assertFalse(report[
+            "fastboot_archive_is_xiaomi_stock_independently_authenticated"])
+        self.assertFalse(list(destination.glob("*.img")))
 
     def test_integrated_vendor_boot_audit_remains_diagnostic_only(self):
         vendor_payload = b"VNDRBOOT" + b"\x00" * 2112

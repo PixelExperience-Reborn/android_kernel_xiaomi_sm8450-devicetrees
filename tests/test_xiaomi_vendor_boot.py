@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 from audit_xiaomi_vendor_boot import (  # noqa: E402
     audit_vendor_boot_data, parse_vendor_boot,
 )
+from test_xiaomi_camera_evidence import build_camera_fdt  # noqa: E402
 
 
 def fdt_fixture():
@@ -123,6 +124,75 @@ class XiaomiVendorBootTests(unittest.TestCase):
         struct.pack_into("<I", payload, 2120, 128)
         with self.assertRaisesRegex(ValueError, "table metadata"):
             parse_vendor_boot(payload)
+
+    def test_both_header_versions_report_camera_and_pmic_links(self):
+        # The embedded FDT is synthetic and never validates physical hardware.
+        for version in (3, 4):
+            with self.subTest(version=version):
+                payload = vendor_boot_fixture(
+                    version, dtbs=[build_camera_fdt(mask=9)])
+                with patch("audit_xiaomi_vendor_boot.shutil.which",
+                           return_value="dtc"):
+                    with patch("audit_xiaomi_vendor_boot.subprocess.run") as run:
+                        run.return_value.stdout = b"synthetic flash DTB;"
+                        report = audit_vendor_boot_data(payload)
+                entry = report["embedded_dtbs"][0]
+                flash = entry["manufacturer_camera_flash_structure"]
+                self.assertEqual(flash["camera_flash_node_count"], 1)
+                node = flash["camera_flash_candidates"][0]
+                self.assertTrue(node["all_sources_resolved_within_this_fdt"])
+                self.assertEqual(
+                    node["source_references"]["switch-source"][0][
+                        "local_target_node"], "/soc/pmic-switch")
+                self.assertEqual(
+                    flash["led_mask_candidates"][0]["mask_as_published"], 9)
+                self.assertFalse(
+                    flash["led_mask_candidates"][0][
+                        "mask_is_mondrian_camera_channel_verified"])
+                self.assertFalse(flash["camera_dtbo_safe_for_product"])
+                self.assertFalse(flash["physical_flash_hardware_qualified"])
+                self.assertFalse(
+                    report["manufacturer_provenance_independently_verified"])
+
+    def test_vendor_boot_external_fixup_does_not_qualify_pmic_channel(self):
+        payload = vendor_boot_fixture(
+            4, dtbs=[build_camera_fdt(unresolved=True)])
+        with patch("audit_xiaomi_vendor_boot.shutil.which",
+                   return_value="dtc"):
+            with patch("audit_xiaomi_vendor_boot.subprocess.run") as run:
+                run.return_value.stdout = b"synthetic camera overlay;"
+                evidence = audit_vendor_boot_data(payload)
+        flash = evidence["embedded_dtbs"][0][
+            "manufacturer_camera_flash_structure"]
+        unresolved = flash["camera_flash_candidates"][0][
+            "source_references"]["flash-source"][0]
+        self.assertEqual(
+            unresolved["resolution"], "external_fixup_unresolved")
+        self.assertIsNone(unresolved["local_target_node"])
+        self.assertEqual(flash["unresolved_source_reference_count"], 1)
+        self.assertFalse(flash["camera_dtbo_safe_for_product"])
+
+    def test_vendor_boot_empty_camera_is_not_invented(self):
+        payload = vendor_boot_fixture(3, dtbs=[fdt_fixture()])
+        with patch("audit_xiaomi_vendor_boot.shutil.which",
+                   return_value="dtc"):
+            with patch("audit_xiaomi_vendor_boot.subprocess.run") as run:
+                run.return_value.stdout = b"synthetic no camera;"
+                entry = audit_vendor_boot_data(payload)["embedded_dtbs"][0]
+        self.assertEqual(entry["manufacturer_camera_flash_structure"][
+            "camera_flash_node_count"], 0)
+        self.assertFalse(entry["manufacturer_camera_flash_structure"][
+            "camera_dtbo_safe_for_product"])
+
+    def test_malformed_camera_fdt_fails_closed_during_vendor_boot_audit(self):
+        payload = vendor_boot_fixture(
+            4, dtbs=[build_camera_fdt(bad_mask=True)])
+        with patch("audit_xiaomi_vendor_boot.shutil.which",
+                   return_value="dtc"):
+            with patch("audit_xiaomi_vendor_boot.subprocess.run") as run:
+                run.return_value.stdout = b"synthetic malformed LED mask;"
+                with self.assertRaisesRegex(ValueError, "qcom,led-mask"):
+                    audit_vendor_boot_data(payload)
 
     def test_audit_never_certifies_panel_from_a_matching_string(self):
         payload = vendor_boot_fixture(4, dtbs=[fdt_fixture()])

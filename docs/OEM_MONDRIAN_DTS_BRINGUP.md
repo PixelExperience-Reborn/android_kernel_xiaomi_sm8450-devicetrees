@@ -60,3 +60,37 @@ supplied in this CI environment; synthetic FDT test fixtures are not
 physical wiring evidence. This stage does not compile/ship a Camera
 overlay, import LineageOS source, mutate DTB/DTBO images, touch
 \`seventeen\`, or change the already-passed OEM Kernel/Modules builds.
+
+
+## 17 November 2026 — Camera Flash evidence in both OEM boot FDT sources
+
+After the source-only and coherent DTBO tests passed on devicetrees
+commit `421b4d49000dcf8c5db457555a7323b236b55ba0`:
+- [DTBO contract](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43977761777) — SUCCESS.
+- [Coherent Cape board compilation](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43977761772) — SUCCESS.
+
+The original Xiaomi fastboot camera provenance audit is now applied to
+**both** DTBO table entries and FDTs embedded in `vendor_boot.img` v3/v4.
+The `stock_vendor_boot.embedded_dtbs[].manufacturer_camera_flash_structure`
+JSON field uses exactly the same bounded Xiaomi FDT reader as
+`entries[].manufacturer_camera_flash_structure` from `dtbo.img`.
+This avoids missing a factory camera flash node that exists only in an
+OEM vendor-boot DTB.
+
+The report records only structurally present Camera flash nodes, local
+phandle connections, unresolved external `__fixups__` and raw published
+LED masks. A referenced PM8350C symbol or a mask value of 1/9 is
+**candidate evidence, not verified mondrian hardware wiring**.
+Synthetic test FDTs cover both vendor_boot header layouts, external
+fixup handling, malformed LED masks and Fastboot aggregation. Neither
+synthetic tests nor boot-image hashes establish manufacturer authenticity
+or physical function.
+
+No original Xiaomi mondrian stock fastboot archive has been supplied for
+this stage. Until it is inspected and matched to the exact OEM firmware,
+SKU, sensor firmware and actual bootloader configuration, the following
+remain false: production Camera DTBO approval, GPIO356 approval, LED
+channel mask verification, hardware Camera/torch/flash validation.
+This is independent PE-Reborn AOSP 17 code; no LineageOS DTS is copied
+and no `seventeen` branch, panel source, Android HAL or shipping image is
+modified.
