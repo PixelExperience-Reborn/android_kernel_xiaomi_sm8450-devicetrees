@@ -193,3 +193,46 @@ verified separately. Keep source pinning, compilation, ABI,
 sensor power/CCI, HAL and physical flash qualification distinct.
 No production Camera image, vendor files, firmware or LineageOS
 tree is imported by this stage; default `seventeen` remains untouched.
+
+
+## 17 November 2026 — independently compiled mondrian Camera controller overlay
+
+The manufacturer Cape Camera platform source locked at
+MiCode/vendor_qcom_proprietary_camera-devicetree@a59a63bd498b94074c41357a466874b99aec62a8
+has passed source audit, and the preceding OEM Cape/board CI on
+4135ba5c304d99bfd0019fcbaae50ca9ad03fd16 has passed.
+
+A new **native PE-Reborn** source file,
+qcom/mondrian-sm8475-camera-platform-overlay.dts, selects only the
+manufacturer's Cape Camera *controller* definitions: CCI0/CCI1, six
+CSIPHY instances, CPAS, Camera Request Manager and common camera clocks.
+The original controller source remains pinned and unmodified. The
+Xiaomi Camera kernel's dt-bindings/msm-camera.h is obtained exclusively
+from the pinned driver revision 9ed4ce96d49c0759c6365627113c5f59c2407942;
+it is not recreated by hand and not borrowed from LineageOS.
+
+The independent Camera CI rebuilds three existing OEM Cape+mondrian
+diagnostic DTBs with the exact PixelExperience-Reborn OEM kernel
+032260f7c8dacf338e1ac993e1653cd1982877d1, preprocesses the native
+Camera overlay, compiles an isolated .dtbo and applies it with fdtoverlay
+to **copies** of all three checked OEM Cape boards. The static FDT
+contract requires exactly two qcom,cci, six qcom,csiphy, one CPAS
+and one Camera Request Manager node. Every property in every original
+board node, including existing GPIO, Goodix, WLAN and PM8350C, must
+remain byte-identical. Original and merged FDTs are reserialized
+**only for strict inspection**, with complete DTS equality checks.
+
+Reference Cape MTP/QRD/CDP, flame/ukee sensors, camera-flash consumers,
+actuators, EEPROM/I2C addresses, sensor reset GPIOs, camera power rails,
+LED masks and vendor HAL are **not selected**. The independent
+Camera platform overlay carries no qcom,board-id, xiaomi,miboard-id
+or model: it cannot replace bootloader board selection. Artifact
+names are diagnostic-only; no production DTBO image, modules.load,
+boot.img, or device-tree product selection is changed.
+
+**Remaining steps are not waived by this test**: establish mondrian
+sensor/EEPROM/actuator identities, CCI routing, CSI lane maps,
+regulator and reset/power sequencing, PM8350C flash channels,
+Camera HAL integration and runtime hardware verification. Those require
+original device-specific evidence; no fixed GPIO or sensor model may be
+guessed to make CI green.

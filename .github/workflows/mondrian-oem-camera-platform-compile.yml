@@ -1,0 +1,79 @@
+name: Compile native mondrian OEM Cape Camera platform DTBO (diagnostic)
+
+on:
+  push:
+    branches: [bringup/a17-mondrian-oem-bsp-20261111]
+    paths:
+      - qcom/mondrian-sm8475-camera-platform-overlay.dts
+      - tools/build_mondrian_camera_platform.py
+      - tests/test_mondrian_camera_platform_build.py
+      - upstream/xiaomi-camera-platform
+      - mondrian-camera-platform-source-lock.json
+      - .github/workflows/mondrian-oem-camera-platform-compile.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cape-camera:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
+          ref: 032260f7c8dacf338e1ac993e1653cd1982877d1
+          path: kernel
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: MiCode/vendor_qcom_opensource_camera-kernel
+          ref: 9ed4ce96d49c0759c6365627113c5f59c2407942
+          path: xiaomi-camera-kernel
+          persist-credentials: false
+      - name: Install OEM DT build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends device-tree-compiler gcc
+          python3 -m venv /tmp/pe-camera-dt-venv
+          /tmp/pe-camera-dt-venv/bin/python -m pip install --disable-pip-version-check lz4==4.4.5
+      - name: Verify original Xiaomi Camera platform and PE source contracts
+        run: |
+          set -euo pipefail
+          /tmp/pe-camera-dt-venv/bin/python -m unittest discover -s tests -v
+          python3 tools/verify_mondrian_xiaomi_camera_platform.py
+          grep -Fx 'SUBLEVEL = 81' kernel/Makefile
+      - name: Build existing original OEM Cape and mondrian board inputs
+        run: |
+          set -euo pipefail
+          python3 tools/build_oem_dtbo.py \
+            --kernel kernel \
+            --expected-kernel-commit 032260f7c8dacf338e1ac993e1653cd1982877d1 \
+            --out /tmp/mondrian-camera-base
+      - name: Compile and apply ONLY generic Xiaomi Camera controllers
+        run: |
+          set -euo pipefail
+          python3 tools/build_mondrian_camera_platform.py \
+            --kernel kernel \
+            --camera-kernel xiaomi-camera-kernel \
+            --board-build /tmp/mondrian-camera-base \
+            --out /tmp/mondrian-camera-platform
+          echo "[PASS] Camera CCI0/1, CSIPHY0..5 and CPAS applied to all 3 Cape OEM boards" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PENDING] mondrian-specific sensors, CCI power, PM8350C channels, HAL, hardware" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve source, exact binary hashes and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-oem-camera-platform-dtbo-diagnostic
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            /tmp/mondrian-camera-platform/images/*.dtbo
+            /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
+            /tmp/mondrian-camera-platform/mondrian-camera-platform-diagnostic-evidence.json
+            /tmp/mondrian-camera-base/dtbo-diagnostic-evidence.json

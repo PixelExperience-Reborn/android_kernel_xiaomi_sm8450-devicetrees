@@ -1,0 +1,18 @@
+/dts-v1/;
+/plugin/;
+
+/*
+ * PE-Reborn AOSP 17: mondrian (SM8475) Camera controller-only overlay.
+ * Manufacturer common Cape Camera source pinned at:
+ *   MiCode/vendor_qcom_proprietary_camera-devicetree@a59a63bd...
+ * IMPORTANT: This diagnostic layer is NOT selected by a bootloader or
+ * product DTBO list. It must not define a sensor, board-id, flash mask,
+ * camera reset wiring, power rail or other device's reference overlay.
+ * All Camera hardware parameters remain subject to mondrian validation.
+ */
+#include <dt-bindings/clock/qcom,gcc-waipio.h>
+#include <dt-bindings/clock/qcom,camcc-waipio.h>
+#include <dt-bindings/interconnect/qcom,waipio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/regulator/qcom,rpmh-regulator-levels.h>
+#include "cape-camera.dtsi"
