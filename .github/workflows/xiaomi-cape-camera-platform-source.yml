@@ -1,0 +1,45 @@
+name: Audit MiCode Cape Camera controller source for mondrian AOSP17 (source only)
+
+on:
+  push:
+    branches: [bringup/a17-mondrian-oem-bsp-20261111]
+    paths:
+      - .gitmodules
+      - upstream/xiaomi-camera-platform
+      - mondrian-camera-platform-source-lock.json
+      - tools/verify_mondrian_xiaomi_camera_platform.py
+      - tests/test_mondrian_xiaomi_camera_platform.py
+      - .github/workflows/xiaomi-cape-camera-platform-source.yml
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  camera-cape-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Check original Xiaomi Cape CCI, CSIPHY and board-source revision
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_mondrian_xiaomi_camera_platform.py' -v
+          python3 tools/verify_mondrian_xiaomi_camera_platform.py
+          test "$(git -C upstream/xiaomi-dts rev-parse HEAD)" = \
+            34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c
+          test "$(git -C upstream/xiaomi-camera-platform rev-parse HEAD)" = \
+            a59a63bd498b94074c41357a466874b99aec62a8
+          echo "[PASS] Pinned Xiaomi Cape camera controller source and pinned mondrian OEM DTS" >> "$GITHUB_STEP_SUMMARY"
+          echo "[NOT QUALIFIED] Sensor power, CSI routes, PM8350C output mask, Camera HAL, hardware boot" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload manufacturer source lock as audit evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-micode-cape-camera-source-lock
+          path: mondrian-camera-platform-source-lock.json
+          retention-days: 7

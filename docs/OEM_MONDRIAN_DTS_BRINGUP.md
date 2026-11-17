@@ -151,3 +151,45 @@ or other device configuration remains blocked. A dedicated regression
 test verifies original-byte preservation, complete DTS equality and
 failure on any detected property change. This is an isolated diagnostic
 tooling fix, not an AOSP17 product-image or hardware qualification.
+
+
+## 17 November 2026 — source Xiaomi's genuine Cape Camera platform separately
+
+The successful OEM DTBO checks at
+[CI #44005240069](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/44005240069)
+cover the *base SoC* Cape DTB and our existing mondrian overlay;
+they do not contain the separate Qualcomm Camera controller DTS.
+Manufacturer `MiCode/kernel_devicetree` has no
+`qcom/cape-camera.dtsi` and does not define the CCI0/CCI1 and
+CSIPHY0..5 Camera controller hierarchy.
+
+The separate **official Xiaomi** repository
+[`MiCode/vendor_qcom_proprietary_camera-devicetree`](https://github.com/MiCode/vendor_qcom_proprietary_camera-devicetree)
+contains that generic Cape controller source. The available
+`flame-u-oss` source revision
+`a59a63bd498b94074c41357a466874b99aec62a8` is
+now pinned under the **Git submodule**
+`upstream/xiaomi-camera-platform` in PE-Reborn. These common
+Cape definitions provide `qcom,cci` CCI controllers, CSI PHY,
+Camera Request Manager and CPAS bindings. The pinned MiCode
+Camera driver `9ed4ce96d49c0759c6365627113c5f59c2407942`
+declares OF matches for `qcom,cci` and `qcom,csiphy`.
+
+**Source branch naming is not board qualification.** `flame-u-oss`
+is a carrier for generic manufacturer Cape sources; `flame`,
+Cape MTP/QRD/CDP and ukee sensor dtsi/dtbo are not authorized for
+`mondrian`. Do not include `cape-camera-sensor-mtp.dtsi`,
+copy camera reset GPIOs or select the PM8350C flash channel
+according to another device. A fail-closed source audit validates
+Gitlink, manufacturer commit and tree, the original blobs, both CCI
+and six CSIPHY declarations, and prevents importing any reference
+sensor include into the active board overlay.
+
+This *first stage* installs a reproducible, pristine OEM
+Camera **platform source**, not an active Camera DTBO. Next:
+construct a **native mondrian-only** Camera platform overlay with
+the pinned OEM Kernel/Cape platform and device camera wiring
+verified separately. Keep source pinning, compilation, ABI,
+sensor power/CCI, HAL and physical flash qualification distinct.
+No production Camera image, vendor files, firmware or LineageOS
+tree is imported by this stage; default `seventeen` remains untouched.
