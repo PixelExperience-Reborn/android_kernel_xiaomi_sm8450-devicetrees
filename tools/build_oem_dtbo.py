@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from verify_mondrian_camera_pmic_fdt import verify_mondrian_camera_pmic_fdt
 import shutil
 import subprocess
@@ -29,6 +30,40 @@ def verify_kernel_revision(kernel, expected):
 def run(args, *, stdout=None):
     print("+", " ".join(map(str, args)), flush=True)
     subprocess.run(list(map(str, args)), check=True, stdout=stdout)
+
+
+
+def canonicalize_generated_overlay_fdt(merged, canonical):
+    """Round-trip only a disposable *compiled* FDT for strict PMIC inspection.
+
+    fdtoverlay/libfdt output can carry nonzero property alignment bytes; the
+    exact original merged image must remain untouched. Never weaken the
+    stock-firmware FDT parser. Re-emit a temporary standard dtc DTB and
+    require identical complete DTS on both sides before trusting the copy.
+    """
+    merged, canonical = Path(merged), Path(canonical)
+    if not merged.is_file() or merged.stat().st_size < 100:
+        raise RuntimeError("missing or truncated original merged OEM DTB")
+    if canonical.exists() or canonical.is_symlink():
+        raise RuntimeError("refusing to overwrite an existing canonical DTB")
+    run(["dtc", "-I", "dtb", "-O", "dtb", "-o", canonical, merged])
+    if not canonical.is_file() or canonical.stat().st_size < 100:
+        raise RuntimeError("dtc failed to produce a canonical OEM DTB")
+    raw_dts = subprocess.check_output(
+        ["dtc", "-I", "dtb", "-O", "dts", str(merged)])
+    roundtrip_dts = subprocess.check_output(
+        ["dtc", "-I", "dtb", "-O", "dts", str(canonical)])
+    if raw_dts != roundtrip_dts:
+        raise RuntimeError("compiled FDT canonicalization changed OEM DT semantics")
+    return {
+        "original_merged_dtb_sha256": hashlib.sha256(
+            merged.read_bytes()).hexdigest(),
+        "inspection_only_canonical_dtb_sha256": hashlib.sha256(
+            canonical.read_bytes()).hexdigest(),
+        "complete_original_and_canonical_dts_identical": True,
+        "canonical_copy_used_only_for_static_pmic_inspection": True,
+        "original_merged_dtb_not_replaced": True,
+    }
 
 def main():
     parser = argparse.ArgumentParser()
@@ -107,15 +142,20 @@ def main():
         run(["fdtoverlay", "-i", base, "-o", merged, overlay])
         if not merged.is_file() or merged.stat().st_size < base.stat().st_size:
             raise RuntimeError(f"Invalid merged DTB: {merged}")
-        camera_pmic_evidence[base.stem] = verify_mondrian_camera_pmic_fdt(
-            merged.read_bytes())
         model = subprocess.check_output(
             ["fdtget", "-t", "s", str(merged), "/", "model"], text=True
         ).strip()
-        # Overlay root metadata is for bootloader selection and is not
-        # automatically copied over the root 'model' of a Cape base DTB.
+        # Check the original merged image with libfdt before normalizing a
+        # separate inspection-only copy. Never alter the build's DTB output.
         if "Cape" not in model:
             raise RuntimeError(f"Wrong base board used in merged DTB: {model}")
+        with TemporaryDirectory(prefix="pe-mondrian-pmic-", dir=out) as temp:
+            canonical = Path(temp) / "inspected-oem.dtb"
+            roundtrip_evidence = canonicalize_generated_overlay_fdt(
+                merged, canonical)
+            pmic = verify_mondrian_camera_pmic_fdt(canonical.read_bytes())
+            pmic.update(roundtrip_evidence)
+            camera_pmic_evidence[base.stem] = pmic
         expanded = out / (base.stem + "-mondrian-merged.dts")
         run(["dtc", "-I", "dtb", "-O", "dts", "-o", expanded, merged])
         dt = expanded.read_text()

@@ -117,3 +117,37 @@ Camera sensor selection, regulator/CCI power sequencing, physical LED
 channels, Camera HAL, or product DTBO. No Lineage sources, yudi GPIO356,
 other device targets, or production module load configuration are
 included. The seven original Xiaomi board source blobs remain unmodified.
+
+
+## 17 November 2026 — compiled FDT alignment recovery without weakening OEM checks
+
+Diagnostic Cape/board DTBO builds on Devicetrees commit
+`c6fab787f243eb048b15cb407691905d4993f1bf`
+failed in [CI #44004211895](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/44004211895)
+and [CI #44004211815](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/44004211815).
+The OEM Cape DTBs and board overlay compiled, `fdtoverlay` applied,
+and the **new** PMIC inspection stage reached
+`fdt_nodes(): invalid FDT property padding`. This is a strict
+structural inspection error, not evidence of a Camera kernel-ABI failure.
+
+DTSpec section 5.4.1 requires zeroed property alignment bytes.
+Do not delete this validation from the read-only original Xiaomi
+stock DTBO/vendor_boot parser. Instead, after `fdtoverlay`, use
+the already-required `fdtget` to confirm the original merged DTB
+has the expected Cape board model, then reserialize an **ephemeral**
+inspection copy using trusted `dtc -I dtb -O dtb`.
+Before PMIC inspection, require that the complete original DTS and
+reserialized DTS byte-for-byte agree under the same `dtc` version.
+Any semantic change fails the CI. The strict original `fdt_nodes`
+is then applied to that copy. Its SHA256 and the original merged DTB's
+SHA256 are reported separately; the original DTB is neither replaced
+nor promoted as production.
+
+The unchanged Camera/PMIC gate still requires original OEM flash,
+torch, switch trigger labels and the Xiaomi common LED masks
+(9, 6, 15); these **do not qualify physical mondrian flash wiring**.
+An unqualified Camera consumer, donor GPIO356, altered sensor wiring
+or other device configuration remains blocked. A dedicated regression
+test verifies original-byte preservation, complete DTS equality and
+failure on any detected property change. This is an isolated diagnostic
+tooling fix, not an AOSP17 product-image or hardware qualification.
