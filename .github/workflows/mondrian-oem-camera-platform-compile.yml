@@ -6,6 +6,8 @@ on:
     paths:
       - qcom/mondrian-sm8475-camera-platform-overlay.dts
       - tools/build_mondrian_camera_platform.py
+      - tools/audit_mondrian_camera_source_contract.py
+      - tests/test_mondrian_camera_source_contract.py
       - tests/test_mondrian_camera_platform_build.py
       - upstream/xiaomi-camera-platform
       - mondrian-camera-platform-source-lock.json
@@ -47,6 +49,7 @@ jobs:
           set -euo pipefail
           /tmp/pe-camera-dt-venv/bin/python -m unittest discover -s tests -v
           python3 tools/verify_mondrian_xiaomi_camera_platform.py
+          python3 tools/audit_mondrian_camera_source_contract.py --out /tmp/mondrian-camera-source-contract
           grep -Fx 'SUBLEVEL = 81' kernel/Makefile
       - name: Build existing original OEM Cape and mondrian board inputs
         run: |
@@ -77,3 +80,4 @@ jobs:
             /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
             /tmp/mondrian-camera-platform/mondrian-camera-platform-diagnostic-evidence.json
             /tmp/mondrian-camera-base/dtbo-diagnostic-evidence.json
+            /tmp/mondrian-camera-source-contract/mondrian-camera-oem-source-contract.json
