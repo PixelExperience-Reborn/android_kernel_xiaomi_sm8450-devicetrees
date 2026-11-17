@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from verify_mondrian_camera_pmic_fdt import verify_mondrian_camera_pmic_fdt
+from verify_mondrian_audio_fdt import verify_mondrian_audio_fdt
 import shutil
 import subprocess
 import sys
@@ -137,6 +138,7 @@ def main():
     if [int(x, 16) for x in board_id.split()] != [0xE, 0]:
         raise RuntimeError(f"Unexpected mondrian miboard-id: {board_id}")
     camera_pmic_evidence = {}
+    audio_board_evidence = {}
     for base in bases:
         merged = dest / (base.stem + "-mondrian-merged.dtb")
         run(["fdtoverlay", "-i", base, "-o", merged, overlay])
@@ -153,9 +155,13 @@ def main():
             canonical = Path(temp) / "inspected-oem.dtb"
             roundtrip_evidence = canonicalize_generated_overlay_fdt(
                 merged, canonical)
-            pmic = verify_mondrian_camera_pmic_fdt(canonical.read_bytes())
+            compiled_fdt = canonical.read_bytes()
+            pmic = verify_mondrian_camera_pmic_fdt(compiled_fdt)
+            audio = verify_mondrian_audio_fdt(compiled_fdt)
             pmic.update(roundtrip_evidence)
+            audio.update(roundtrip_evidence)
             camera_pmic_evidence[base.stem] = pmic
+            audio_board_evidence[base.stem] = audio
         expanded = out / (base.stem + "-mondrian-merged.dts")
         run(["dtc", "-I", "dtb", "-O", "dts", "-o", expanded, merged])
         dt = expanded.read_text()
@@ -205,6 +211,12 @@ def main():
         "goodix_udfps_device_runtime_verified": False,
         "camera_pmic_oem_source_links_compiled": True,
         "camera_pmic_compiled_evidence": camera_pmic_evidence,
+        "mondrian_oem_audio_speaker_source_compiled": True,
+        "mondrian_oem_audio_compiled_evidence": audio_board_evidence,
+        "mondrian_audio_kernel_abi_qualified": False,
+        "mondrian_audio_hal_qualified": False,
+        "mondrian_audio_hardware_verified": False,
+        "production_audio_approved": False,
         "mondrian_camera_flash_consumer_qualified": False,
         "mondrian_camera_sensor_power_cci_qualified": False,
         "display_camera_overlays_compiled": False,
@@ -215,6 +227,7 @@ def main():
         json.dumps(provenance, indent=2) + "\n"
     )
     print("[PASS] OEM Cape DTBs and mondrian board overlay compiled and applied")
+    print("[PASS] OEM mondrian AW882xx I2C/GPIO and MI2S2 board routing in all Cape DTBs")
     print("[PENDING] Display/camera DTBO, bootloader and hardware boot")
 
 if __name__ == "__main__":
