@@ -15,10 +15,10 @@ AMPLIFIERS = {
     0x35: {"channel": 1, "irq": 63, "reset": 3, "switch": None},
 }
 MI2S2 = {
-    "mi2s2_data0": "gpio122",
-    "mi2s2_data1": "gpio124",
-    "mi2s2_sck": "gpio121",
-    "mi2s2_ws": "gpio123",
+    "tert_tdm_din_active": ("mi2s2_data0", "gpio122"),
+    "tert_tdm_dout_active": ("mi2s2_data1", "gpio124"),
+    "tert_tdm_clk_active": ("mi2s2_sck", "gpio121"),
+    "tert_tdm_ws_active": ("mi2s2_ws", "gpio123"),
 }
 
 
@@ -88,14 +88,17 @@ def verify_nodes(nodes):
         }
 
     mi2s_pins = {}
-    for function, pin in MI2S2.items():
-        found = [
-            path for path, props in nodes.items()
-            if props.get("function") == function.encode() + b"\0"
-            and props.get("pins") == pin.encode() + b"\0"
-        ]
-        if len(found) != 1:
-            raise ValueError("missing/duplicate OEM MI2S2 pin assignment " + function)
+    for label, (function, pin) in MI2S2.items():
+        # Other Cape pinctrl states may legitimately share the same mux
+        # function. Require the exact Xiaomi mondrian-labelled state,
+        # not an incorrect global uniqueness assumption.
+        path = _string(symbols, label)
+        if not path.startswith(tlmm + "/") or path + "/mux" not in nodes:
+            raise ValueError("unresolved OEM mondrian MI2S2 pinctrl " + label)
+        props = nodes[path + "/mux"]
+        if (props.get("function") != function.encode() + b"\0"
+                or props.get("pins") != pin.encode() + b"\0"):
+            raise ValueError("wrong OEM MI2S2 pin assignment " + label)
         mi2s_pins[function] = pin
 
     return {
