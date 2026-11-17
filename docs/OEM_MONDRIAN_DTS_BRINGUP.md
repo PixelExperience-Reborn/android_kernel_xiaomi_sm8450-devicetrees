@@ -94,3 +94,26 @@ channel mask verification, hardware Camera/torch/flash validation.
 This is independent PE-Reborn AOSP 17 code; no LineageOS DTS is copied
 and no `seventeen` branch, panel source, Android HAL or shipping image is
 modified.
+
+
+## 17 Nov 2026 — validate actual Qualcomm Camera PMIC sources in built OEM DTBs
+
+The combined OEM Kernel, MMRM, Display, WLAN and Camera source build passed
+[CI #43985719293](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-modules/actions/runs/43985719293).
+
+The PE-Reborn Device Tree builder now parses **compiled** Cape, Cape-v2,
+and Capep DTBs after applying the actual mondrian board overlay.
+It requires exactly one enabled Xiaomi/Qualcomm PM8350C flash controller,
+and checks the compiled symbol targets for `pm8350c_flash0`,
+`pm8350c_torch0` and `pm8350c_switch0/1/2`.
+It confirms OEM trigger strings as required by Camera
+`cam_flash_soc.c`, and records the Xiaomi common DTS baseline masks
+9, 6, and 15 **without interpreting these values as actual mondrian
+flash-channel mapping**. It refuses any prematurely enabled Camera
+Flash or donor I2C Flash consumer.
+
+This step validates source-to-compiled-FDT dependency consistency, not
+Camera sensor selection, regulator/CCI power sequencing, physical LED
+channels, Camera HAL, or product DTBO. No Lineage sources, yudi GPIO356,
+other device targets, or production module load configuration are
+included. The seven original Xiaomi board source blobs remain unmodified.

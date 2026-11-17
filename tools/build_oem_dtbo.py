@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from verify_mondrian_camera_pmic_fdt import verify_mondrian_camera_pmic_fdt
 import shutil
 import subprocess
 import sys
@@ -100,11 +101,14 @@ def main():
     ).strip()
     if [int(x, 16) for x in board_id.split()] != [0xE, 0]:
         raise RuntimeError(f"Unexpected mondrian miboard-id: {board_id}")
+    camera_pmic_evidence = {}
     for base in bases:
         merged = dest / (base.stem + "-mondrian-merged.dtb")
         run(["fdtoverlay", "-i", base, "-o", merged, overlay])
         if not merged.is_file() or merged.stat().st_size < base.stat().st_size:
             raise RuntimeError(f"Invalid merged DTB: {merged}")
+        camera_pmic_evidence[base.stem] = verify_mondrian_camera_pmic_fdt(
+            merged.read_bytes())
         model = subprocess.check_output(
             ["fdtget", "-t", "s", str(merged), "/", "model"], text=True
         ).strip()
@@ -159,6 +163,10 @@ def main():
         "qca6490_hardware_rf_and_firmware_verified": False,
         "goodix_udfps_oem_bindings_verified": True,
         "goodix_udfps_device_runtime_verified": False,
+        "camera_pmic_oem_source_links_compiled": True,
+        "camera_pmic_compiled_evidence": camera_pmic_evidence,
+        "mondrian_camera_flash_consumer_qualified": False,
+        "mondrian_camera_sensor_power_cci_qualified": False,
         "display_camera_overlays_compiled": False,
         "bootloader_hardware_verified": False,
         "android17_boot_verified": False,
