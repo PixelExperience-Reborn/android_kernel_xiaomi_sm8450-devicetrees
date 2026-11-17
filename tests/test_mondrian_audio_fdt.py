@@ -17,11 +17,13 @@ def sample_audio(*, wrong_addr=False, wrong_channel=False, wrong_irq=False,
     b.begin("soc")
     b.begin("tlmm@1000")
     b.cells("phandle", 7)
-    for function, pin in MI2S2.items():
-        b.begin(function)
+    for label, (function, pin) in MI2S2.items():
+        b.begin(label)
+        b.begin("mux")
         b.string("function", function)
         b.string("pins", "gpio120" if wrong_mi2s and function == "mi2s2_ws"
                  else pin)
+        b.end()
         b.end()
     b.end()
 
@@ -50,6 +52,8 @@ def sample_audio(*, wrong_addr=False, wrong_channel=False, wrong_irq=False,
     b.end()
     b.begin("__symbols__")
     b.string("tlmm", "/soc/tlmm@1000")
+    for label in MI2S2:
+        b.string(label, "/soc/tlmm@1000/" + label)
     b.string("qupv3_se15_i2c",
              "/soc/i2c@9999" if wrong_bus else "/soc/i2c@1200")
     b.end()
