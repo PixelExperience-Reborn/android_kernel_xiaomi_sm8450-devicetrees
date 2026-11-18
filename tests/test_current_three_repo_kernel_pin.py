@@ -4,7 +4,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-KERNEL = "a146a1df7e458ab899d6084ed3ddb75699ad3b82"
+KERNEL = "c9c67329b427ba21dea10d7a6e404ff422f86c1a"
 OEM_DT = "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c"
 OLD_EVIDENCE = "2466406b9beac724960b0c88e6e794421d0466e7"
 
