@@ -62,8 +62,12 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertEqual(evidence["checked_bases"], ["cape", "cape-v2", "capep"])
         self.assertTrue(evidence["fdt_overlay_applied_to_each"])
         self.assertFalse(evidence["production_dtbo_img_built"])
+        # Diagnostic evidence is historical; a newer selected kernel SHA
+        # does not retroactively change the revision used by the old run.
         self.assertEqual(evidence["kernel_commit"],
-                         self.lock["selected_kernel_commit"])
+                         "2466406b9beac724960b0c88e6e794421d0466e7")
+        self.assertNotEqual(evidence["kernel_commit"],
+                            self.lock["selected_kernel_commit"])
         self.assertGreaterEqual(len(self.lock["unresolved"]), 5)
 
 
