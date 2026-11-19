@@ -27,14 +27,7 @@ CAPE = "\n".join([
     'compatible = "qcom,cam-cpas"',
     'compatible = "qcom,cam-req-mgr"',
 ])
-OVERLAY = ("/dts-v1/;\n/plugin/;\n" +
-           "\n".join(f"#include {h}" for h in (
-               "<dt-bindings/clock/qcom,gcc-waipio.h>",
-               "<dt-bindings/clock/qcom,camcc-waipio.h>",
-               "<dt-bindings/interconnect/qcom,waipio.h>",
-               "<dt-bindings/interrupt-controller/arm-gic.h>",
-               "<dt-bindings/regulator/qcom,rpmh-regulator-levels.h>",
-               '"cape-camera.dtsi"')))
+OVERLAY = (ROOT / "qcom/mondrian-sm8475-camera-platform-overlay.dts").read_text()
 
 
 class MondrianCameraOemSourceContractTests(unittest.TestCase):
@@ -60,6 +53,14 @@ class MondrianCameraOemSourceContractTests(unittest.TestCase):
     def test_source_controllers_present(self):
         self.assertEqual(
             validate_donor_controller_source(CAPE, OVERLAY)["csiphy_count"], 6)
+
+    def test_m11a_phy_bindings_cannot_be_omitted(self):
+        for phy in (2, 4):
+            with self.subTest(phy=phy):
+                damaged = OVERLAY.replace(
+                    f"&cam_csiphy{phy} {{", f"&cam_csiphy{phy}x {{")
+                with self.assertRaisesRegex(ValueError, "missing or duplicate M11A"):
+                    validate_donor_controller_source(CAPE, damaged)
 
     def test_missing_controller_rejected(self):
         with self.assertRaises(ValueError):
