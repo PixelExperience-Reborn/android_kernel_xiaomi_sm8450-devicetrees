@@ -236,3 +236,26 @@ regulator and reset/power sequencing, PM8350C flash channels,
 Camera HAL integration and runtime hardware verification. Those require
 original device-specific evidence; no fixed GPIO or sensor model may be
 guessed to make CI green.
+
+
+## 20 November 2026 — native mondrian CSIPHY2/4 M11A binding
+
+The pinned Xiaomi OEM Camera driver now supports the mondrian M11A register
+and C-PHY tuning via isolated per-controller v2.1.3 copies in Modules commit
+`e1bbcab7`. Its Camera ABI and coherent Kernel/Modules tests have passed.
+
+The OEM `cape-camera.dtsi` defines six indexed controllers, but the prior
+standalone Camera overlay left every PHY at generic v2.1.3. The independent
+mondrian Camera overlay now assigns the M11A compatible ONLY to CSIPHY2 and
+CSIPHY4, following an independently checked official device reference.
+The other four PHY controllers retain unchanged generic OEM compatibles.
+
+The original MiCode Camera platform source stays pinned and unmodified.
+The existing diagnostic DTBO compiler validates all six indexed PHY
+compatible values after merge against each of the three OEM Cape base DTBs,
+rejecting changes to Camera power, flash, sensors or unrelated OEM nodes.
+
+Still unqualified: the four mondrian Camera sensor positions, EEPROM/actuator
+part numbers and wiring, real PM8350C LED channels, stock-compatible
+Camera HAL and physical Camera/UDFPS tests. This diagnostic change
+does not enable production DTBO packaging or module load order.

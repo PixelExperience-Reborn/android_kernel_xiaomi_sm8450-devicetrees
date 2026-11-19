@@ -32,6 +32,9 @@ CAMERA_KERNEL_SHA = "9ed4ce96d49c0759c6365627113c5f59c2407942"
 CAMERA_HEADER_SHA = "9bdc2b4c0257cdb18626d46cfb691df845202b48"
 KERNEL_SHA = "c9c67329b427ba21dea10d7a6e404ff422f86c1a"
 EXPECTED_IMPORT = '#include "cape-camera.dtsi"'
+MONDRIAN_M11A_PHY_IDS = (2, 4)
+M11A_COMPATIBLE = b"qcom,csiphy-v2.1.3-xiaomi-m11a"
+BASE_PHY_COMPATIBLE = b"qcom,csiphy-v2.1.3"
 PLATFORM_COMPATIBLES = {
     b"qcom,cci": 2,
     b"qcom,csiphy": 6,
@@ -69,13 +72,24 @@ def validate_overlay_source(source):
     for header in MANDATORY_INCLUDES:
         if source.count("#include " + header) != 1:
             raise ValueError("missing required pinned Qualcomm header " + header)
-    # Only stripped comments may mention future sensor/mask resources.
+    # Only two board-specific PHY compatible overrides are permitted.
+    # Reject any extra nodes/properties, including GPIO, flash and sensors.
     without_comments = re.sub(r"/\*.*?\*/", "", source,
                               flags=re.DOTALL)
     without_comments = re.sub(r"//.*", "", without_comments)
+    for phy in MONDRIAN_M11A_PHY_IDS:
+        pattern = re.compile(
+            r"&cam_csiphy" + str(phy) +
+            r'\s*\{\s*compatible\s*=\s*' +
+            r'"qcom,csiphy-v2[.]1[.]3-xiaomi-m11a"\s*,\s*' +
+            r'"qcom,csiphy"\s*;\s*\}'
+        )
+        if len(pattern.findall(without_comments)) != 1:
+            raise ValueError("missing or duplicate M11A CSIPHY" + str(phy))
+        without_comments = pattern.sub("", without_comments, count=1)
     if re.search(r"\b(?:model|compatible|qcom,board-id|xiaomi,miboard-id)\s*=",
                  without_comments):
-        raise ValueError("Camera platform must not override board identity")
+        raise ValueError("Camera overlay contains an unqualified property")
     if any(x in without_comments for x in (
             "camera-sensor-mtp", "camera-sensor-qrd", "camera-sensor-cdp",
             "qcom,camera-flash", "qcom,cam-sensor",
@@ -122,6 +136,22 @@ def verify_camera_platform_nodes(before, after):
                 "unexpected original/new Camera platform controller count: " +
                 key.decode("ascii"))
         found[key.decode("ascii")] = matched
+    indices = {}
+    for path in found["qcom,csiphy"]:
+        props = after[path]
+        cell = props.get("cell-index", b"")
+        if len(cell) != 4:
+            raise ValueError("invalid Camera PHY cell-index: " + path)
+        phy = int.from_bytes(cell, byteorder="big")
+        if phy not in range(6) or phy in indices:
+            raise ValueError("invalid or duplicate Camera PHY index: " + path)
+        indices[phy] = path
+        version = (M11A_COMPATIBLE if phy in MONDRIAN_M11A_PHY_IDS
+                   else BASE_PHY_COMPATIBLE)
+        if props.get("compatible") != version + b"\0qcom,csiphy\0":
+            raise ValueError("incorrect mondrian CSI PHY compatible: " + path)
+    if set(indices) != set(range(6)):
+        raise ValueError("incomplete six-PHY mondrian controller layout")
     for path, props in after.items():
         if compatible(props) & FORBIDDEN_COMPATIBLES:
             raise ValueError("unqualified Camera sensor or flash consumer: " + path)
@@ -243,6 +273,7 @@ def main():
                 hashlib.sha256(dtbo.read_bytes()).hexdigest(),
             "all_three_cape_base_dtb_links_resolved": True,
             "per_board": result,
+            "mondrian_m11a_csiphy2_and_4_bound": True,
             "sensor_power_configured": False,
             "mondrian_camera_sensor_addresses_verified": False,
             "pm8350c_flash_channels_verified": False,

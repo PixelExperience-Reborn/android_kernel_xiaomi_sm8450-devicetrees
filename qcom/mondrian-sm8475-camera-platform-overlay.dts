@@ -16,3 +16,14 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator-levels.h>
 #include "cape-camera.dtsi"
+
+/* Only mondrian CSIPHY2/4 use M11A tuning; keep every other OEM PHY.
+ * Camera sensors, rails and LED flash are not enabled here.
+ */
+&cam_csiphy2 {
+	compatible = "qcom,csiphy-v2.1.3-xiaomi-m11a", "qcom,csiphy";
+};
+
+&cam_csiphy4 {
+	compatible = "qcom,csiphy-v2.1.3-xiaomi-m11a", "qcom,csiphy";
+};
