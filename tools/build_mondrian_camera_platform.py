@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Compile OEM Cape Camera controllers as a separate mondrian diagnostic DTBO.
+"""Build the Cape camera controllers and the mondrian diagnostic board overlay.
 
 Keep MiCode source unmodified; use existing OEM Cape+mondrian board DTBs and
 the exact pinned Xiaomi Camera kernel dt-binding header. Apply the Camera
 overlay ONLY to diagnostic copies. Disallow any alteration of existing base
-DTB property bytes, donor sensor/flash consumers or board selector metadata.
+DTB property bytes in the controller stage. The separate board stage restores
+the mondrian sensor routes, shared supplies and the board-specific flash channel.
 
 This is a static build/ABI gate, not a flashable or bootloader-selected DTBO.
 """
@@ -14,18 +15,20 @@ import json
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
 
 from audit_xiaomi_panel_evidence import fdt_nodes
 from build_oem_dtbo import (
-    BASES, canonicalize_generated_overlay_fdt, run,
+    BASES, BOARD, canonicalize_generated_overlay_fdt, run,
     verify_kernel_revision,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 OVERLAY = ROOT / "qcom/mondrian-sm8475-camera-platform-overlay.dts"
+BOARD_CAMERA = ROOT / "qcom/mondrian-sm8475-camera-board-overlay.dts"
 CAMERA_PLATFORM_SHA = "a59a63bd498b94074c41357a466874b99aec62a8"
 CAMERA_PLATFORM_TREE = "dcd9bc5855358af4a3c39a9a582472d3190766cc"
 CAMERA_KERNEL_SHA = "9ed4ce96d49c0759c6365627113c5f59c2407942"
@@ -164,6 +167,63 @@ def canonical_nodes(image, temp, label):
     return fdt_nodes(inspected.read_bytes()), evidence
 
 
+def verify_board_routes(before, after):
+    symbols = {name: raw.rstrip(b"\0").decode()
+               for name, raw in after["/__symbols__"].items()}
+
+    def cells(*values):
+        return struct.pack(">" + "I" * len(values), *values)
+
+    def expect(path, key, value):
+        if after[path].get(key) != value:
+            raise ValueError(f"incorrect mondrian camera route {path} {key}")
+
+    def handle(label):
+        return after[symbols[label]]["phandle"]
+
+    mask = (symbols["pm8350c_switch0"], "qcom,led-mask")
+    changes = {mask: cells(1)}
+    for bus, strength in enumerate((4, 8, 4, 4)):
+        states = ("active",) if bus == 3 else ("active", "suspend")
+        for state in states:
+            pin = symbols[f"cci{bus}_{state}"] + "/config"
+            changes[pin, "drive-strength"] = cells(strength)
+    for (path, prop), value in changes.items():
+        expect(path, prop, value)
+    for path, props in before.items():
+        for prop, value in props.items():
+            if (path, prop) not in changes:
+                expect(path, prop, value)
+
+    # Stock CCI parent and cci-device are independent on this Qualcomm driver.
+    routes = (
+        ("wide", 0, 1, None, 2, 1), ("front", 0, 0, 1, 4, None),
+        ("ultra", 0, 0, 1, 1, 2), ("macro", 1, 0, None, 0, 3),
+    )
+    for slot, (role, parent, master, cci_dev, phy, flash_index) in enumerate(routes):
+        sensor = symbols[f"cam_cci{parent}"] + f"/qcom,cam-sensor{slot}"
+        eeprom = f"mondrian_eeprom_{role}"
+        for node in (sensor, symbols[eeprom]):
+            expect(node, "cell-index", cells(slot))
+            expect(node, "cci-master", cells(master))
+            expect(node, "cci-device", None if cci_dev is None else cells(cci_dev))
+        expect(sensor, "csiphy-sd-index", cells(phy))
+        expect(sensor, "eeprom-src", handle(eeprom))
+        expect(sensor, "actuator-src", handle("mondrian_wide_actuator") if slot == 0 else None)
+        if flash_index is None:
+            expect(sensor, "led-flash-src", None)
+            continue
+        flash = f"mondrian_flash_{role}"
+        expect(sensor, "led-flash-src", handle(flash))
+        expect(symbols[flash], "cell-index", cells(flash_index))
+        for prop, pmic in (("switch", "switch"), ("flash", "flash"), ("torch", "torch")):
+            expect(symbols[flash], prop + "-source", handle(f"pm8350c_{pmic}0"))
+
+    shared = symbols["soc"] + "/qcom,cam-res-mgr"
+    expect(shared, "qcom,shared-pinctrl-gpios",
+           b"".join(handle("tlmm") + cells(pin, 0) for pin in (126, 70, 2, 102)))
+
+
 def validate_pinned_sources(kernel, camera_platform, camera_kernel, board_build):
     verify_kernel_revision(kernel, KERNEL_SHA)
     if git(camera_platform, "rev-parse", "HEAD") != CAMERA_PLATFORM_SHA:
@@ -179,6 +239,13 @@ def validate_pinned_sources(kernel, camera_platform, camera_kernel, board_build)
         raise ValueError("missing original Xiaomi MSM Camera header")
     with (board_build / "dtbo-diagnostic-evidence.json").open() as stream:
         board = json.load(stream)
+    selector = board_build / "images" / (BOARD + ".dtbo")
+    if hashlib.sha256(selector.read_bytes()).hexdigest() != board["outputs_sha256"][selector.name]:
+        raise ValueError("unrecognized mondrian board selector image")
+    for key, expected in (("qcom,board-id", [0x10008, 0]), ("xiaomi,miboard-id", [14, 0])):
+        cells = subprocess.check_output(["fdtget", "-t", "x", selector, "/", key], text=True)
+        if [int(cell, 16) for cell in cells.split()] != expected:
+            raise ValueError("incompatible mondrian board selector " + key)
     if (board.get("device") != "mondrian" or
             board.get("kernel") != KERNEL_SHA or
             board.get("oem_device_tree") !=
@@ -232,6 +299,13 @@ def main():
              preprocessed])
         if dtbo.stat().st_size < 100:
             raise RuntimeError("Camera platform DTBO is invalid or truncated")
+        board_cpp = out / "mondrian-camera-board.preprocessed.dts"
+        with board_cpp.open("wb") as stream:
+            run(["cpp", "-nostdinc", "-undef", "-D__DTS__", "-x",
+                 "assembler-with-cpp", "-I", kernel / "include", BOARD_CAMERA],
+                stdout=stream)
+        board_dtbo = image_dir / "mondrian-camera-board-diagnostic.dtbo"
+        run(["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", board_dtbo, board_cpp])
         result = {}
         for cape in BASES:
             original = board_build / "images" / (
@@ -250,11 +324,16 @@ def main():
                 before, binfo = canonical_nodes(original, temp, "before")
                 after, ainfo = canonical_nodes(merged, temp, "after")
                 controllers = verify_camera_platform_nodes(before, after)
+                board_camera = image_dir / (cape + "-mondrian-camera-board-diagnostic.dtb")
+                run(["fdtoverlay", "-i", merged, "-o", board_camera, board_dtbo])
+                routed, _ = canonical_nodes(board_camera, temp, "board-camera")
+                verify_board_routes(after, routed)
             result[cape] = {
                 "original_board_dtb_sha256": basehash,
                 "camera_overlay_merged_sha256":
                     hashlib.sha256(merged.read_bytes()).hexdigest(),
                 "controller_paths": controllers,
+                "camera_board_merged_sha256": hashlib.sha256(board_camera.read_bytes()).hexdigest(),
                 "manufacturer_board_properties_preserved": True,
                 "camera_base_and_overlay_dts_reencoded_for_inspection": True,
                 "base_inspection_dts_unchanged": binfo[
@@ -271,10 +350,14 @@ def main():
             "manufacturer_camera_kernel_commit": CAMERA_KERNEL_SHA,
             "camera_platform_dtbo_sha256":
                 hashlib.sha256(dtbo.read_bytes()).hexdigest(),
+            "camera_board_dtbo_sha256": hashlib.sha256(board_dtbo.read_bytes()).hexdigest(),
+            "board_sensor_eeprom_routes_linked": True,
+            "board_rear_flash_switch0_mask": 1,
             "all_three_cape_base_dtb_links_resolved": True,
             "per_board": result,
             "mondrian_m11a_csiphy2_and_4_bound": True,
-            "sensor_power_configured": False,
+            "sensor_power_configured": True,
+            "sensor_power_sequence_hardware_verified": False,
             "mondrian_camera_sensor_addresses_verified": False,
             "pm8350c_flash_channels_verified": False,
             "camera_hal_integration_tested": False,
@@ -284,7 +367,8 @@ def main():
         (out / "mondrian-camera-platform-diagnostic-evidence.json").write_text(
             json.dumps(evidence, indent=2, sort_keys=True) + "\n")
         print("[PASS] pinned OEM Cape Camera CCI/CSI/CPAS applied to all mondrian Cape bases")
-        print("[PENDING] mondrian sensors, EEPROM/actuator/OIS, PM8350C and Camera HAL")
+        print("[PASS] four mondrian sensor/EEPROM routes and three rear flash consumers linked")
+        print("[PENDING] sensor probing, power sequencing, PM8350C and Camera HAL on hardware")
     except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as e:
         print("[FAIL] Camera platform diagnostic: " + str(e), file=sys.stderr)
         return 1

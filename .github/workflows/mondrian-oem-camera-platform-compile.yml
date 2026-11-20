@@ -5,6 +5,7 @@ on:
     branches: [bringup/a17-mondrian-oem-bsp-20261111]
     paths:
       - qcom/mondrian-sm8475-camera-platform-overlay.dts
+      - qcom/mondrian-sm8475-camera-board-overlay.dts
       - tools/build_mondrian_camera_platform.py
       - tools/audit_mondrian_camera_source_contract.py
       - tests/test_mondrian_camera_source_contract.py
@@ -58,7 +59,7 @@ jobs:
             --kernel kernel \
             --expected-kernel-commit ef722b7b3773dacc805a65fd42d022206001266a \
             --out /tmp/mondrian-camera-base
-      - name: Compile and apply ONLY generic Xiaomi Camera controllers
+      - name: Build Cape camera controllers and mondrian camera board routes
         run: |
           set -euo pipefail
           python3 tools/build_mondrian_camera_platform.py \
@@ -67,7 +68,8 @@ jobs:
             --board-build /tmp/mondrian-camera-base \
             --out /tmp/mondrian-camera-platform
           echo "[PASS] Camera CCI0/1, CSIPHY0..5 and CPAS applied to all 3 Cape OEM boards" >> "$GITHUB_STEP_SUMMARY"
-          echo "[PENDING] mondrian-specific sensors, CCI power, PM8350C channels, HAL, hardware" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PASS] Four sensor/EEPROM routes, wide actuator and three PM8350C flash consumers linked" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PENDING] Camera HAL, power sequencing and physical camera/flash operation" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve source, exact binary hashes and errors
         if: always()
         uses: actions/upload-artifact@v4
@@ -78,6 +80,7 @@ jobs:
           path: |
             /tmp/mondrian-camera-platform/images/*.dtbo
             /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
+            /tmp/mondrian-camera-platform/mondrian-camera-board.preprocessed.dts
             /tmp/mondrian-camera-platform/mondrian-camera-platform-diagnostic-evidence.json
             /tmp/mondrian-camera-base/dtbo-diagnostic-evidence.json
             /tmp/mondrian-camera-source-contract/mondrian-camera-oem-source-contract.json
