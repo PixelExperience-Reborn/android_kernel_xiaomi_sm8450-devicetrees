@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
-          ref: c9c67329b427ba21dea10d7a6e404ff422f86c1a
+          ref: ef722b7b3773dacc805a65fd42d022206001266a
           path: kernel
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           python3 tools/build_oem_dtbo.py \
             --kernel kernel \
-            --expected-kernel-commit c9c67329b427ba21dea10d7a6e404ff422f86c1a \
+            --expected-kernel-commit ef722b7b3773dacc805a65fd42d022206001266a \
             --out /tmp/mondrian-camera-base
       - name: Compile and apply ONLY generic Xiaomi Camera controllers
         run: |
