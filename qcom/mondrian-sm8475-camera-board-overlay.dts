@@ -502,7 +502,7 @@
 		status = "ok";
 	};
 
-	/* Both stock builds use reset index 0 for EEPROM2 and 1 for sensor2. */
+	/* P24C64F uses WL2866D AVDD1. GPIO index 0 is OV08D10 MCLK1. */
 	mondrian_eeprom_ultra: qcom,eeprom2 {
 		compatible = "qcom,eeprom";
 		cell-index = <2>;
@@ -521,7 +521,6 @@
 		clock-cntl-level = "nominal";
 		gpios = <&tlmm 101 0>, <&tlmm 24 0>;
 		gpio-no-mux = <0>;
-		gpio-reset = <0>;
 		gpio-req-tbl-num = <0 1>;
 		gpio-req-tbl-flags = <1 0>;
 		gpio-req-tbl-label = "CAMIF_MCLK1", "CAM_RESET1";

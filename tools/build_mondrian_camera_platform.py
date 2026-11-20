@@ -29,6 +29,7 @@ from build_oem_dtbo import (
 ROOT = Path(__file__).resolve().parents[1]
 OVERLAY = ROOT / "qcom/mondrian-sm8475-camera-platform-overlay.dts"
 BOARD_CAMERA = ROOT / "qcom/mondrian-sm8475-camera-board-overlay.dts"
+HAL_PROFILES = ROOT / "mondrian-camera-hal-profiles.json"
 CAMERA_PLATFORM_SHA = "a59a63bd498b94074c41357a466874b99aec62a8"
 CAMERA_PLATFORM_TREE = "dcd9bc5855358af4a3c39a9a582472d3190766cc"
 CAMERA_KERNEL_SHA = "9ed4ce96d49c0759c6365627113c5f59c2407942"
@@ -167,7 +168,7 @@ def canonical_nodes(image, temp, label):
     return fdt_nodes(inspected.read_bytes()), evidence
 
 
-def verify_board_routes(before, after):
+def verify_board_routes(before, after, hal_manifest):
     symbols = {name: raw.rstrip(b"\0").decode()
                for name, raw in after["/__symbols__"].items()}
 
@@ -200,7 +201,15 @@ def verify_board_routes(before, after):
         ("wide", 0, 1, None, 2, 1), ("front", 0, 0, 1, 4, None),
         ("ultra", 0, 0, 1, 1, 2), ("macro", 1, 0, None, 0, 3),
     )
+    profiles = {item["camera_id"]: item for item in hal_manifest["slots"]}
+    if (hal_manifest["device"] != "mondrian" or len(hal_manifest["slots"]) != len(routes)
+            or set(profiles) != set(range(len(routes)))):
+        raise ValueError("factory camera IDs do not match the four mondrian slots")
+    linked_slots = {}
     for slot, (role, parent, master, cci_dev, phy, flash_index) in enumerate(routes):
+        profile = profiles[slot]
+        if profile["role"] != role or not profile["profiles"]:
+            raise ValueError(f"missing {role} factory profile for camera ID {slot}")
         sensor = symbols[f"cam_cci{parent}"] + f"/qcom,cam-sensor{slot}"
         eeprom = f"mondrian_eeprom_{role}"
         for node in (sensor, symbols[eeprom]):
@@ -210,6 +219,18 @@ def verify_board_routes(before, after):
         expect(sensor, "csiphy-sd-index", cells(phy))
         expect(sensor, "eeprom-src", handle(eeprom))
         expect(sensor, "actuator-src", handle("mondrian_wide_actuator") if slot == 0 else None)
+        if role == "ultra":
+            pins = handle("tlmm") + cells(101, 0) + handle("tlmm") + cells(24, 0)
+            expect(sensor, "gpios", pins)
+            expect(symbols[eeprom], "gpios", pins)
+            expect(sensor, "gpio-reset", cells(1))
+            expect(symbols[eeprom], "gpio-reset", None)
+        linked_slots[role] = {
+            "factory_camera_id": slot,
+            "sensor_node": sensor,
+            "eeprom_node": symbols[eeprom],
+            "ois_src_present": "ois-src" in after[sensor],
+        }
         if flash_index is None:
             expect(sensor, "led-flash-src", None)
             continue
@@ -222,6 +243,7 @@ def verify_board_routes(before, after):
     shared = symbols["soc"] + "/qcom,cam-res-mgr"
     expect(shared, "qcom,shared-pinctrl-gpios",
            b"".join(handle("tlmm") + cells(pin, 0) for pin in (126, 70, 2, 102)))
+    return linked_slots
 
 
 def validate_pinned_sources(kernel, camera_platform, camera_kernel, board_build):
@@ -306,6 +328,7 @@ def main():
                 stdout=stream)
         board_dtbo = image_dir / "mondrian-camera-board-diagnostic.dtbo"
         run(["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", board_dtbo, board_cpp])
+        hal_manifest = json.loads(HAL_PROFILES.read_text())
         result = {}
         for cape in BASES:
             original = board_build / "images" / (
@@ -327,12 +350,13 @@ def main():
                 board_camera = image_dir / (cape + "-mondrian-camera-board-diagnostic.dtb")
                 run(["fdtoverlay", "-i", merged, "-o", board_camera, board_dtbo])
                 routed, _ = canonical_nodes(board_camera, temp, "board-camera")
-                verify_board_routes(after, routed)
+                linked_slots = verify_board_routes(after, routed, hal_manifest)
             result[cape] = {
                 "original_board_dtb_sha256": basehash,
                 "camera_overlay_merged_sha256":
                     hashlib.sha256(merged.read_bytes()).hexdigest(),
                 "controller_paths": controllers,
+                "camera_slots": linked_slots,
                 "camera_board_merged_sha256": hashlib.sha256(board_camera.read_bytes()).hexdigest(),
                 "manufacturer_board_properties_preserved": True,
                 "camera_base_and_overlay_dts_reencoded_for_inspection": True,
@@ -352,6 +376,7 @@ def main():
                 hashlib.sha256(dtbo.read_bytes()).hexdigest(),
             "camera_board_dtbo_sha256": hashlib.sha256(board_dtbo.read_bytes()).hexdigest(),
             "board_sensor_eeprom_routes_linked": True,
+            "factory_camera_hal_profiles": hal_manifest,
             "board_rear_flash_switch0_mask": 1,
             "all_three_cape_base_dtb_links_resolved": True,
             "per_board": result,

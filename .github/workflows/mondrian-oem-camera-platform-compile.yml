@@ -6,6 +6,7 @@ on:
     paths:
       - qcom/mondrian-sm8475-camera-platform-overlay.dts
       - qcom/mondrian-sm8475-camera-board-overlay.dts
+      - mondrian-camera-hal-profiles.json
       - tools/build_mondrian_camera_platform.py
       - tools/audit_mondrian_camera_source_contract.py
       - tests/test_mondrian_camera_source_contract.py

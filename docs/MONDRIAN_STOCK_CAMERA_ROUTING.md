@@ -16,6 +16,25 @@ The native board overlay targets Xiaomi board 14 (board ID 0x10008, subtype 0). 
 
 Both firmware entries attach all three rear flash cells to PM8350C flash0, torch0 and switch0. Switch0 selects bit 0. The common SM8475 board sets bits 0 and 3. Only the mondrian diagnostic layer overrides that mask.
 
-The wide sensor shares reset, AVDD, DVDD and MCLK2. The resource manager describes TLMM lines 126, 70, 2 and 102 as controller-relative GPIO specifiers. The matching camera module resolves the lines at bind time. Both firmware entries set the ultra EEPROM reset index to 0 and the sensor reset index to 1 despite listing the same GPIOs. Preserve that distinction for bench verification before product use.
+The wide sensor shares reset, AVDD, DVDD and MCLK2. The resource manager describes TLMM lines 126, 70, 2 and 102 as controller-relative GPIO specifiers. The matching camera module resolves the lines at bind time.
+
+## Factory Camera HAL profiles
+
+| CamX camera ID | Sensor | Factory variants | Sensor ID register → expected value | EEPROM |
+| --- | --- | --- | --- | --- |
+| 0 | OV64B40 | Sunny I, AAC II | 0x300a → 0x5664 | GT24P128E |
+| 1 | OV16A1Q | OFilm I, AAC II | 0x300b → 0x1641 | GT24P64E |
+| 2 | OV08D10 | OFilm I, Sunny II | 0x0000 → 0x5647 | P24C64F |
+| 3 | OV02B10 | Sunny I | 0x0002 → 0x002b | GT24P64E |
+
+These are the physical probe profiles declared by CamX. Each binary's `cameraModuleData` references a `moduleConfiguration` with the camera ID and sensor, EEPROM and accessory names. The sensor driver record supplies the ID register and expected response. All seven decoded assignments match across the two global vendor releases below. The profile list records the original Git blob hashes and CamX 8-bit wire addresses. The build report associates these IDs with the corresponding compiled sensor and EEPROM nodes on each Cape base. [MIUI V14.0.5.0.TMNMIXM](https://github.com/Klozz/poco_mondrian_dump/tree/72d902d1eab5d87055a40f84a90eaecf74a9b8ae/vendor/lib64/camera) · [HyperOS V816.0.8.0.UMNMIXM](https://github.com/gm-stuffs/poco_mondrian_dump/tree/08d057dfd16a6b2c8520100290d4b1807b03ce86/vendor/lib64/camera) · [Machine-readable profiles](../mondrian-camera-hal-profiles.json)
+
+Both wide modules specify the DW9800V actuator and AK7323 optical stabilizer. The diagnostic board links the actuator. The matched Xiaomi camera driver looks up a separate `ois-src` phandle, which the current wide sensor node lacks. Hardware hookup and power sequencing for the stabilizer remain open. [Xiaomi sensor DT parsing](https://github.com/MiCode/vendor_qcom_opensource_camera-kernel/blob/9ed4ce96d49c0759c6365627113c5f59c2407942/drivers/cam_sensor_module/cam_sensor/cam_sensor_soc.c)
+
+## Ultrawide EEPROM reset
+
+In the OFilm and Sunny P24C64F records the entire power-up sequence is WL2866D AVDD1 on (type 15, value 1, delay 3 ms). Power-down is the same rail off (value 0, delay 0). Neither sequence contains a reset or MCLK command. These values come from the EEPROM driver record, independently of the sensor's own power sequence.
+
+Both stock DT entries assign the EEPROM's reset to index 0, which is TLMM 101 (MCLK1). The diagnostic EEPROM node therefore omits the optional reset assignment. Its original GPIO requests and active/suspend pinctrl states still apply. The OV08D10 sensor has its own reset on index 1, TLMM 24. With the EEPROM reset property absent, the Xiaomi driver leaves that GPIO role invalid and skips explicit reset writes. [Xiaomi camera power and GPIO handling](https://github.com/MiCode/vendor_qcom_opensource_camera-kernel/blob/9ed4ce96d49c0759c6365627113c5f59c2407942/drivers/cam_sensor_module/cam_sensor_utils/cam_sensor_util.c)
 
 The build links this overlay after the Cape camera controllers on each original mondrian base. Hardware qualification still requires the actual sensor IDs, successful EEPROM reads, autofocus, camera power cycles and PM8350C torch/flash operation through the camera HAL.
