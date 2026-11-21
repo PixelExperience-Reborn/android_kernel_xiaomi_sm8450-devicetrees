@@ -6,7 +6,7 @@
   "source_repository": "MiCode/kernel_devicetree",
   "source_commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
   "selected_kernel_repository": "PixelExperience-Reborn/android_kernel_xiaomi_sm8450",
-  "selected_kernel_commit": "d374a080af964a3067ec1a57a37d21aacac3202e",
+  "selected_kernel_commit": "c67ed74ffe11bd2133b560078a20cf0c04e18d97",
   "status": "oem_mondrian_board_dtb_diagnostic_compiled_not_ship_ready",
   "original_git_blobs": {
     "qcom/mondrian-sm8475-pm8008-overlay.dts": "46e60415b9287309e5290a6d32654f14d2b2ab42",

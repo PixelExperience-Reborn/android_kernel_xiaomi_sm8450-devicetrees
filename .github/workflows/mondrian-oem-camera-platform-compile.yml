@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
-          ref: d374a080af964a3067ec1a57a37d21aacac3202e
+          ref: c67ed74ffe11bd2133b560078a20cf0c04e18d97
           path: kernel
           persist-credentials: false
       - uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
           python3 tools/build_oem_dtbo.py \
             --kernel kernel \
-            --expected-kernel-commit d374a080af964a3067ec1a57a37d21aacac3202e \
+            --expected-kernel-commit c67ed74ffe11bd2133b560078a20cf0c04e18d97 \
             --out /tmp/mondrian-camera-base
       - name: Build Cape camera controllers and mondrian camera board routes
         run: |
