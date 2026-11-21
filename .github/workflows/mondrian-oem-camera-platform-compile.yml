@@ -9,6 +9,7 @@ on:
       - mondrian-camera-hal-profiles.json
       - tools/build_mondrian_camera_platform.py
       - qcom/mondrian-m11a-primary-overlay.dts
+      - patches/mondrian-m11a-*.patch
       - tools/build_mondrian_m11a.py
       - oem-m11a-panel-source-lock.json
       - upstream/xiaomi-display
