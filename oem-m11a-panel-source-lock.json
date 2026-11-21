@@ -37,7 +37,7 @@
     "repository": "MiCode/vendor_qcom_proprietary_display-devicetree",
     "branch": "garnet-t-oss",
     "commit": "ab5bc7b921d3d4072ce11eecfde984382e3ec695",
-    "kernel_commit": "6b1293a9c03b2cf814878d6565ee17e33afe84f4",
+    "kernel_commit": "478fac56b3cdfc3164ed4dca3389346d800e7593",
     "board": "display/mondrian-sde-display-mtp-overlay.dts",
     "panel": "display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi",
     "panel_id": "0x4d31314100420200",
