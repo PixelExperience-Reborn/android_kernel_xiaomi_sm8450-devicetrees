@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "project": "PixelExperience-Reborn",
+  "device": "mondrian",
+  "soc": "SM8475",
+  "android_base": "AOSP 17",
+  "driver": {
+    "repository": "MiCode/vendor_qcom_opensource_camera-kernel",
+    "commit": "9ed4ce96d49c0759c6365627113c5f59c2407942"
+  },
+  "manufacturer_platform": {
+    "repository": "MiCode/vendor_qcom_proprietary_camera-devicetree",
+    "commit": "a59a63bd498b94074c41357a466874b99aec62a8",
+    "tree": "dcd9bc5855358af4a3c39a9a582472d3190766cc",
+    "revision_branch": "flame-u-oss",
+    "selection": "generic Cape controller definitions only; no flame sensor configuration",
+    "files": {
+      "cape-camera.dtsi": "700405437360cc2cd6465ca0f886bd64781f92a9",
+      "cape-camera.dts": "c2b0db102075a61f167758dd4c641551fc65c4b2",
+      "config/waipio.mk": "b451a595dc51297af9d08787b661942c0903d4bf",
+      "bindings/msm-cam-cci.txt": "52853e40f0fa957afd8418a3295837f653ef457c"
+    }
+  },
+  "policy": {
+    "target_device_only": "mondrian",
+    "original_xiaomi_kernel_devicetree_unchanged": true,
+    "sensor_overlays_from_reference_device_compiled": false,
+    "cape_platform_camera_overlay_compiled": false,
+    "mondrian_camera_sensor_mapping_verified": false,
+    "camera_flash_pmic_channel_mapping_verified": false,
+    "camera_hal_mapped": false,
+    "booted_on_mondrian": false,
+    "fm_radio_included": false,
+    "lineage_source_imported": false,
+    "production_camera_dtbo_approved": false
+  },
+  "status": "MANUFACTURER_CAPE_CAMERA_PLATFORM_SOURCE_PINNED_NOT_COMPILED"
+}

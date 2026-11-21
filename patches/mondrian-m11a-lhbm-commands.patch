@@ -1,0 +1,103 @@
+diff --git a/display/dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi b/display/dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi
+index 2317a14..e3bf5af 100644
+--- a/display/dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi
++++ b/display/dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi
+@@ -9,6 +9,8 @@
+ 			mi,mdss-dsi-hbm-fod-off-command-update = <0x51 0 2>;
+ 
+ 			mi,mdss-dsi-local-hbm-normal-white-1000nit-command = [
++				39 00 00 40 00 00 06 F0 55 AA 52 08 02
++				15 00 00 00 00 00 02 CC 00
+ 				/* RND Setting for LHBM */
+ 				39 00 00 40 00 00 06 F0 55 AA 52 08 07
+ 				39 00 00 40 00 00 02 C0 B1
+@@ -49,10 +51,12 @@
+ 				39 00 00 40 00 00 02 87 21
+ 				39 00 00 00 00 00 02 85 00
+ 			];
+-			mi,mdss-dsi-local-hbm-normal-white-1000nit-command-update = <0x87 27 2>, <0xD0 25 6>, <0xDF 23 2>;
++			mi,mdss-dsi-local-hbm-normal-white-1000nit-command-update = <0x87 29 2>, <0xD0 27 6>, <0xDF 25 2>;
+ 			mi,mdss-dsi-local-hbm-normal-white-1000nit-command-state = "dsi_hs_mode";
+ 
+ 			mi,mdss-dsi-local-hbm-normal-white-110nit-command = [
++				39 00 00 40 00 00 06 F0 55 AA 52 08 02
++				15 00 00 00 00 00 02 CC 00
+ 				/* RND Setting for LHBM */
+ 				39 00 00 40 00 00 06 F0 55 AA 52 08 07
+ 				39 00 00 40 00 00 02 C0 B1
+@@ -93,10 +97,12 @@
+ 				39 00 00 40 00 00 02 87 21
+ 				39 00 00 00 00 00 02 85 00
+ 			];
+-			mi,mdss-dsi-local-hbm-normal-white-110nit-command-update  = <0x87 27 3>, <0xD0 25 6>;
++			mi,mdss-dsi-local-hbm-normal-white-110nit-command-update = <0x87 29 2>, <0xD0 27 6>;
+ 			mi,mdss-dsi-local-hbm-normal-white-110nit-command-state = "dsi_hs_mode";
+ 
+ 			mi,mdss-dsi-local-hbm-normal-green-500nit-command = [
++				39 00 00 40 00 00 06 F0 55 AA 52 08 02
++				15 00 00 00 00 00 02 CC 00
+ 				/* RND Setting for LHBM */
+ 				39 00 00 40 00 00 06 F0 55 AA 52 08 07
+ 				39 00 00 40 00 00 02 C0 B1
+@@ -138,23 +144,27 @@
+ 				39 00 00 00 00 00 02 85 00
+ 			];
+ 			/* <mipi_address  update_index  update_length> */
+-			mi,mdss-dsi-local-hbm-normal-green-500nit-command-update = <0x87 27 2>, <0xDF 23 2>;
++			mi,mdss-dsi-local-hbm-normal-green-500nit-command-update = <0x87 29 2>, <0xD0 27 6>, <0xDF 25 2>;
+ 			mi,mdss-dsi-local-hbm-normal-green-500nit-command-state = "dsi_lp_mode";
+ 
+ 			mi,mdss-dsi-local-hbm-off-to-normal-command = [
++				39 00 00 40 00 00 06 F0 55 AA 52 08 02
++				15 00 00 00 00 00 02 CC 00
+ 				39 00 00 40 00 00 03 51 07 FF
+ 				39 00 00 40 00 00 02 86 00
+ 				39 00 00 00 00 00 02 87 20
+ 			];
+-			mi,mdss-dsi-local-hbm-off-to-normal-command-update = <0x51 0 2>;
++			mi,mdss-dsi-local-hbm-off-to-normal-command-update = <0x51 2 2>;
+ 			mi,mdss-dsi-local-hbm-off-to-normal-command-state = "dsi_hs_mode";
+ 
+ 			mi,mdss-dsi-local-hbm-off-to-hbm-command= [
++				39 00 00 40 00 00 06 F0 55 AA 52 08 02
++				15 00 00 00 00 00 02 CC 00
+ 				39 00 00 40 00 00 03 51 07 FF
+ 				39 00 00 40 00 00 02 86 00
+ 				39 00 00 00 00 00 02 87 20
+ 			];
+-			mi,mdss-dsi-local-hbm-off-to-hbm-command-update = <0x51 0 2>;
++			mi,mdss-dsi-local-hbm-off-to-hbm-command-update = <0x51 2 2>;
+ 			mi,mdss-dsi-local-hbm-off-to-hbm-command-state = "dsi_hs_mode";
+ 
+ 			/* dimming */
+diff --git a/display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi b/display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi
+index 5ac6bab..3e67b57 100644
+--- a/display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi
++++ b/display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi
+@@ -912,7 +912,7 @@
+ 				15 00 00 40 00 00 02 87 21
+ 				15 00 00 00 00 00 02 85 00
+ 			];
+-			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 49 3>, <0xD0 47 6>;
++			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 49 2>, <0xD0 47 6>;
+ 			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-state = "dsi_hs_mode";
+ 
+ 			#include "dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi"
+@@ -1273,7 +1273,7 @@
+ 				15 00 00 40 00 00 02 87 21
+ 				15 00 00 00 00 00 02 85 00
+ 			];
+-			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 49 3>, <0xD0 47 6>;
++			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 49 2>, <0xD0 47 6>;
+ 			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-state = "dsi_hs_mode";
+ 
+ 			#include "dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi"
+@@ -1520,7 +1520,7 @@
+ 				15 00 00 40 00 00 02 87 21
+ 				15 00 00 00 00 00 02 85 00
+ 			];
+-			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 36 3>, <0xD0 34 6>;
++			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-update  = <0x87 36 2>, <0xD0 34 6>;
+ 			mi,mdss-dsi-local-hbm-hlpm-white-110nit-command-state = "dsi_hs_mode";
+ 
+ 			#include "dsi-panel-m11a-42-02-0a-dsc-cmd-common.dtsi"

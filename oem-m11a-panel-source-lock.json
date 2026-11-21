@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "device": "mondrian",
+  "soc": "SM8475",
+  "android_base": "AOSP 17",
+  "provenance_policy": "OEM Xiaomi MiCode sources and verified manufacturer stock firmware only",
+  "oem_published_dts": {
+    "repository": "MiCode/kernel_devicetree",
+    "branch": "mondrian-s-oss",
+    "commit": "34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c",
+    "confirmed_panel_source_available": false
+  },
+  "stock_firmware": {
+    "source_package_sha256": null,
+    "dtbo_sha256": null,
+    "regional_sku": null,
+    "device_board_id_confirmed": false,
+    "stock_firmware_authenticity_verified": false,
+    "vendor_boot_sha256": null,
+    "vendor_boot_embedded_dtb_count": null
+  },
+  "qualification": {
+    "manufacturer_panel_parameters_verified": false,
+    "m11a_dt_source_reviewed": true,
+    "independent_pe_panel_dts_implemented": false,
+    "full_m11a_dtb_compiled": true,
+    "dsc_timing_verified_on_hardware": false,
+    "udfps_lhbm_verified_on_hardware": false,
+    "production_dtbo_img_approved": false,
+    "manufacturer_vendor_boot_dtb_reviewed": false,
+    "manufacturer_dtbo_and_vendor_boot_crosschecked": false
+  },
+  "product_selection_allowed": false,
+  "status": "OEM_M11A_PANEL_ON_FIXED_NORMAL_LHBM_RECONCILED",
+  "notes": "The public M11A initialization table still differs from MIUI and HyperOS. The corrected 90 Hz source sequence and the 60/120 Hz sequences decode to 57 DSI packets each. Normal white 1000/110 nit, green 500 nit, off-to-normal and off-to-HBM payloads match both reviewed global firmware entries at all three rates. The 110 nit alpha update length is limited to the two data bytes in the actual 0x87 packet. Low-power command sequences and the FOD hardware path remain unqualified.",
+  "display_source": {
+    "repository": "MiCode/vendor_qcom_proprietary_display-devicetree",
+    "branch": "garnet-t-oss",
+    "commit": "ab5bc7b921d3d4072ce11eecfde984382e3ec695",
+    "kernel_commit": "478fac56b3cdfc3164ed4dca3389346d800e7593",
+    "board": "display/mondrian-sde-display-mtp-overlay.dts",
+    "panel": "display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi",
+    "panel_id": "0x4d31314100420200",
+    "board_id": [
+      65544,
+      0
+    ],
+    "xiaomi_board_id": [
+      14,
+      0
+    ]
+  }
+}

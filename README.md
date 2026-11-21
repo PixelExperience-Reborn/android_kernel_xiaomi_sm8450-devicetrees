@@ -1,5 +1,31 @@
-# PixelExperience-Reborn — Xiaomi sm8450 kernel device trees
+# PixelExperience-Reborn — Xiaomi OEM mondrian kernel Device Trees
 
-Repository reserved for independent PixelExperience-Reborn Android 17 development: the device-tree sources matched to the selected mondrian kernel.
+Independent AOSP 17 development for **POCO F5 Pro / Redmi K60 (SM8475/Cape)**. Based on the pinned **Xiaomi `mondrian-s-oss`** kernel Device Tree, not a LineageOS source import.
 
-Source code, hardware dependencies, licenses, and compatibility will be reviewed before integration. This placeholder does not indicate build or device readiness.
+## Verified
+
+- Six unmodified source blobs and three explicitly checked changes to the seventh board DTS for our Goodix Berlin GT9916S driver and the actual m11a firmware/config filenames.
+- Exact upstream Xiaomi `kernel_devicetree` commit `34e6cc7d832ed9c655b9d79bc3ffe1d625146b7c` pinned as Git submodule.
+- `cape.dtb`, `cape-v2.dtb`, `capep.dtb` and `mondrian-sm8475-pm8008-overlay.dtbo` **compiled** with the selected PE-Reborn OEM kernel headers.
+- `fdtoverlay` successfully applied the board overlay to each of the three Cape bases; the compiled overlay's Xiaomi board ID and the merged Goodix node + firmware/config names are verified.
+- [Compiled CI evidence](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450-devicetrees/actions/runs/43010141003). Retained diagnostic DTB artifact, **not** a flashable image.
+
+## Not yet qualified
+
+Display M11A and camera/audio overlays, final `dtbo.img` packaging and bootloader SKU selection, actual AOSP17 vendor firmware, SELinux/VINTF, Qualcomm external modules, and **physical boot**. Production and boot readiness are **not confirmed**.
+
+## Reproduce
+
+`git submodule update --init --recursive`, then:
+
+`python3 tools/build_oem_dtbo.py --kernel /path/to/pinned-PE-OEM-kernel --out /tmp/mondrian-dt`
+
+See `oem-source-lock.json`, `docs/OEM_DTB_BUILD.md`, and `docs/OEM_MONDRIAN_DTS_BRINGUP.md` for the reproducible pinned source and release gates.
+
+## M11A OLED: Xiaomi manufacturer data required
+
+The selected public Xiaomi `mondrian-s-oss` DTS subset does not include a full M11A panel configuration. **Never import or copy LineageOS DTS, panel commands, numeric values or driver trees**: that ROM may only be inspected to understand the engineering problem.
+
+For a locally owned **Xiaomi stock Fastboot** package matching the exact `mondrian` region/revision, use `tools/audit_xiaomi_fastboot_package.py` to check the package SHA256 and inspect the original `dtbo.img` together with the optional `vendor_boot.img` DTB section. The tool outputs diagnostic JSON only; it never stages or flashes the factory binary.
+
+`docs/XIAOMI_M11A_OEM_SOURCE_RECOVERY.md` explains the procedure. `oem-m11a-panel-source-lock.json` intentionally keeps `product_selection_allowed=false` until the manufacturer-derived panel data, board SKU, DSC timing, LHBM/FOD coordination, firmware and hardware operation are verified. A successful `msm_drm.ko` MODPOST or synthetic parser test is **not** a working M11A display.

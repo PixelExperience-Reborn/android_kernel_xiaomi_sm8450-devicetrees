@@ -1,0 +1,97 @@
+name: Compile native mondrian OEM Cape Camera platform DTBO (diagnostic)
+
+on:
+  push:
+    branches: [bringup/a17-mondrian-oem-bsp-20261111]
+    paths:
+      - qcom/mondrian-sm8475-camera-platform-overlay.dts
+      - qcom/mondrian-sm8475-camera-board-overlay.dts
+      - mondrian-camera-hal-profiles.json
+      - tools/build_mondrian_camera_platform.py
+      - qcom/mondrian-m11a-primary-overlay.dts
+      - patches/mondrian-m11a-*.patch
+      - tools/build_mondrian_m11a.py
+      - oem-m11a-panel-source-lock.json
+      - upstream/xiaomi-display
+      - tools/audit_mondrian_camera_source_contract.py
+      - tests/test_mondrian_camera_source_contract.py
+      - tests/test_mondrian_camera_platform_build.py
+      - upstream/xiaomi-camera-platform
+      - mondrian-camera-platform-source-lock.json
+      - .github/workflows/mondrian-oem-camera-platform-compile.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cape-camera:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
+          ref: 478fac56b3cdfc3164ed4dca3389346d800e7593
+          path: kernel
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: MiCode/vendor_qcom_opensource_camera-kernel
+          ref: 9ed4ce96d49c0759c6365627113c5f59c2407942
+          path: xiaomi-camera-kernel
+          persist-credentials: false
+      - name: Install OEM DT build prerequisites
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends device-tree-compiler gcc
+          python3 -m venv /tmp/pe-camera-dt-venv
+          /tmp/pe-camera-dt-venv/bin/python -m pip install --disable-pip-version-check lz4==4.4.5
+      - name: Verify original Xiaomi Camera platform and PE source contracts
+        run: |
+          set -euo pipefail
+          /tmp/pe-camera-dt-venv/bin/python -m unittest discover -s tests -v
+          python3 tools/verify_mondrian_xiaomi_camera_platform.py
+          python3 tools/audit_mondrian_camera_source_contract.py --out /tmp/mondrian-camera-source-contract
+          grep -Fx 'SUBLEVEL = 81' kernel/Makefile
+      - name: Build existing original OEM Cape and mondrian board inputs
+        run: |
+          set -euo pipefail
+          python3 tools/build_oem_dtbo.py \
+            --kernel kernel \
+            --expected-kernel-commit 478fac56b3cdfc3164ed4dca3389346d800e7593 \
+            --out /tmp/mondrian-camera-base
+      - name: Build Cape camera controllers and mondrian camera board routes
+        run: |
+          set -euo pipefail
+          python3 tools/build_mondrian_camera_platform.py \
+            --kernel kernel \
+            --camera-kernel xiaomi-camera-kernel \
+            --board-build /tmp/mondrian-camera-base \
+            --out /tmp/mondrian-camera-platform
+          echo "[PASS] Camera CCI0/1, CSIPHY0..5 and CPAS applied to all 3 Cape OEM boards" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PASS] Four sensor/EEPROM routes, wide actuator and three PM8350C flash consumers linked" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PENDING] Camera HAL, power sequencing and physical camera/flash operation" >> "$GITHUB_STEP_SUMMARY"
+      - name: Link the Xiaomi M11A display to the camera-integrated boards
+        run: |
+          python3 tools/build_mondrian_m11a.py --kernel kernel \
+            --camera-build /tmp/mondrian-camera-platform --out /tmp/mondrian-m11a
+      - name: Preserve source, exact binary hashes and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mondrian-oem-camera-platform-dtbo-diagnostic
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            /tmp/mondrian-m11a/
+            /tmp/mondrian-camera-platform/images/*.dtbo
+            /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
+            /tmp/mondrian-camera-platform/mondrian-camera-board.preprocessed.dts
+            /tmp/mondrian-camera-platform/mondrian-camera-platform-diagnostic-evidence.json
+            /tmp/mondrian-camera-base/dtbo-diagnostic-evidence.json
+            /tmp/mondrian-camera-source-contract/mondrian-camera-oem-source-contract.json
