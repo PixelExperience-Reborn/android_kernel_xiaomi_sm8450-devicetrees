@@ -7,3 +7,18 @@
 &sde_dsi {
 	qcom,dsi-default-panel = <&dsi_m11a_42_02_0a_dsc_cmd>;
 };
+
+&dsi_m11a_42_02_0a_dsc_cmd {
+	xiaomi,mondrian-m11a-fod;
+	qcom,mdss-dsi-display-timings {
+		timing@0 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+		timing@1 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+		timing@2 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+	};
+};

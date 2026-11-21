@@ -68,6 +68,16 @@ def verify_lhbm_updates(dtb, mode):
     if required:
         raise ValueError(f"{mode}: missing local HBM update tables {sorted(required)}")
 
+    for prop in (prefix + "off-to-hlpm-command", prefix + "off-to-llpm-command",
+                 "mi,mdss-dsi-doze-hbm-command", "mi,mdss-dsi-doze-lbm-command",
+                 "qcom,mdss-dsi-nolp-command"):
+        if not command_packets(byte_property(dtb, mode, prop)):
+            raise ValueError(f"{mode}: empty M11A transition {prop}")
+    nolp = "qcom,mdss-dsi-nolp-command"
+    if (byte_property(dtb, mode, nolp + "-update") != struct.pack(">III", 0x51, 2, 2)
+            or command_packets(byte_property(dtb, mode, nolp))[2][1] != bytes((0x51, 0, 0))):
+        raise ValueError(f"{mode}: invalid M11A brightness restore on doze exit")
+
 
 def verify_panel(dtb):
     def read(path, key, fmt="x"):
@@ -83,6 +93,9 @@ def verify_panel(dtb):
             read(panel, "qcom,panel-supply-entries") != read(supplies, "phandle") or
             read(panel, "mi,panel-id") != "4d313141 420200"):
         raise ValueError(f"{dtb.name}: primary display or supply mapping does not match M11A")
+    if "xiaomi,mondrian-m11a-fod" not in subprocess.check_output(
+            ["fdtget", "-p", dtb, panel], text=True).splitlines():
+        raise ValueError(f"{dtb.name}: missing M11A fingerprint display selection")
     ready_frames = int(read(panel, "mi,local-hbm-ui-ready-delay-num-frame"), 16)
     if ready_frames != 4:
         raise ValueError(f"{dtb.name}: unexpected M11A FOD readiness delay")
