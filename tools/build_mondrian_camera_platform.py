@@ -219,6 +219,8 @@ def verify_board_routes(before, after, hal_manifest):
         expect(sensor, "csiphy-sd-index", cells(phy))
         expect(sensor, "eeprom-src", handle(eeprom))
         expect(sensor, "actuator-src", handle("mondrian_wide_actuator") if slot == 0 else None)
+        if role == "wide" and not profile["ois_control"]["standalone_subdevice_in_stock_dt"]:
+            expect(sensor, "ois-src", None)
         if role == "ultra":
             pins = handle("tlmm") + cells(101, 0) + handle("tlmm") + cells(24, 0)
             expect(sensor, "gpios", pins)

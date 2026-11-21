@@ -33,6 +33,14 @@
       },
       "actuator": "DW9800V",
       "ois": "AK7323",
+      "ois_control": {
+        "standalone_subdevice_in_stock_dt": false,
+        "power_records_per_profile": 2,
+        "zero_filled_power_records_per_profile": 2,
+        "register_data_records_per_profile": 13,
+        "nonzero_register_data_records_per_profile": 0,
+        "transport": "unverified"
+      },
       "profiles": {
         "mondrian_sunny_ov64b40_wide_i": {
           "miui": "718d453d03a8a52490d9a088fe2ae2783400e836",
