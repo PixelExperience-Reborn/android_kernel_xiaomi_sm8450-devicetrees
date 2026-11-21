@@ -11,6 +11,14 @@
 - The imported Goodix device-tree properties and board selection are already separately source-locked. Do not infer panel readiness from successful fingerprint or Cape DTB syntax.
 - The separate Qualcomm WAIPIO SDE/DSI source in [Kernel Display PR #4](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450/pull/4) has a successful [real `msm_drm.ko` MODPOST/ABI build](https://github.com/PixelExperience-Reborn/android_kernel_xiaomi_sm8450/actions/runs/43607464216); this does **not** supply the missing manufacturer M11A data.
 
+## Published mondrian display source and compiled candidate
+
+Xiaomi also published the SM8475 display controllers and the actual mondrian M11A board, panel and timings in its separate display-devicetree repository. The selected revision is on the `garnet-t-oss` branch. The PE input includes the Xiaomi **mondrian** board file and the Cape display controllers. The PE wrapper sets M11A as the primary fallback specifically in this diagnostic build. The bootloader panel override takes precedence in the DSI driver. [MiCode mondrian board](https://github.com/MiCode/vendor_qcom_proprietary_display-devicetree/blob/ab5bc7b921d3d4072ce11eecfde984382e3ec695/display/mondrian-sde-display-mtp.dtsi)
+
+The normal camera and three-repository builds also apply both display overlays to the camera-integrated `cape`, `cape-v2` and `capep` DTBs. The compiled panel ID is `0x4d31314100420200`. Each variant links the M11A supply table and exposes 1440 × 3200 at 60, 90 and 120 Hz with 720 × 32 DSC slices.
+
+Comparison with the global MIUI V14.0.5.0.TMNMIXM and HyperOS OS3.0.5.0.VMNMIXM board entries found matching panel ID, rail settings, PHY timings and DSC geometry. The panel-on and local-HBM commands differ. At 60 Hz the panel-on property contains 599 bytes in the published source, 1235 in MIUI and 1534 in HyperOS. The 1000-nit white local-HBM property contains 319 bytes in the published source and 341 in each firmware entry. These are payload lengths, and the byte sequences also differ. The complete firmware package signatures and the handset revision have not been verified. [Firmware input hashes](MONDRIAN_STOCK_CAMERA_ROUTING.md)
+
 ## OEM-first recovery procedure
 
 1. Start with an **official Xiaomi stock fastboot firmware archive for the exact mondrian SKU/region** from Xiaomi's distribution portal, or read the equivalent partition from the owner's unmodified stock installation. Record build number, model/region, source URL and cryptographic SHA256 of the original firmware archive. A user-entered filename or checksum is **not** independent provenance verification.
@@ -52,7 +60,7 @@ For v1/v2 compressed FDT entries, bounded decompression is available for zlib/gz
 
 ## Fail-closed status
 
-The `oem-m11a-panel-source-lock.json` record has `product_selection_allowed: false`. CI tests reject unreviewed M11A DTS staging while the OEM inputs and hardware evidence are missing. The audit helper is **diagnostic only**, and a panel marker in any DTB does not prove it matches the particular phone or firmware. No `dtbo.img` or flashable ROM is produced by this stage.
+The `oem-m11a-panel-source-lock.json` record has `product_selection_allowed: false`. CI tests reject unreviewed M11A DTS staging until the factory command revision and hardware results are known. The audit helper is **diagnostic only**, and a panel marker in any DTB does not prove it matches the particular phone or firmware. No `dtbo.img` or flashable ROM is produced by this stage.
 
 **Still out of scope:** Camera, Video, Audio and other hardware dependencies. Production `seventeen` is unchanged.
 

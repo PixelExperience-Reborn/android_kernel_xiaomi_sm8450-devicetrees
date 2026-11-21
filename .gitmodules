@@ -4,3 +4,6 @@
 [submodule "upstream/xiaomi-camera-platform"]
 	path = upstream/xiaomi-camera-platform
 	url = https://github.com/MiCode/vendor_qcom_proprietary_camera-devicetree.git
+[submodule "upstream/xiaomi-display"]
+	path = upstream/xiaomi-display
+	url = https://github.com/MiCode/vendor_qcom_proprietary_display-devicetree.git

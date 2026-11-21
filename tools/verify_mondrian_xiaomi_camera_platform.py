@@ -75,6 +75,10 @@ def verify_config(data):
             "path": SOURCE_PATH,
             "url": SOURCE_URL,
         },
+        'submodule "upstream/xiaomi-display"': {
+            "path": "upstream/xiaomi-display",
+            "url": "https://github.com/MiCode/vendor_qcom_proprietary_display-devicetree.git",
+        },
     }
     if set(parser.sections()) != set(entries):
         raise ValueError("unexpected OEM submodules or missing manufacturer source")

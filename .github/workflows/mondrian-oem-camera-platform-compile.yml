@@ -8,6 +8,10 @@ on:
       - qcom/mondrian-sm8475-camera-board-overlay.dts
       - mondrian-camera-hal-profiles.json
       - tools/build_mondrian_camera_platform.py
+      - qcom/mondrian-m11a-primary-overlay.dts
+      - tools/build_mondrian_m11a.py
+      - oem-m11a-panel-source-lock.json
+      - upstream/xiaomi-display
       - tools/audit_mondrian_camera_source_contract.py
       - tests/test_mondrian_camera_source_contract.py
       - tests/test_mondrian_camera_platform_build.py
@@ -71,6 +75,10 @@ jobs:
           echo "[PASS] Camera CCI0/1, CSIPHY0..5 and CPAS applied to all 3 Cape OEM boards" >> "$GITHUB_STEP_SUMMARY"
           echo "[PASS] Four sensor/EEPROM routes, wide actuator and three PM8350C flash consumers linked" >> "$GITHUB_STEP_SUMMARY"
           echo "[PENDING] Camera HAL, power sequencing and physical camera/flash operation" >> "$GITHUB_STEP_SUMMARY"
+      - name: Link the Xiaomi M11A display to the camera-integrated boards
+        run: |
+          python3 tools/build_mondrian_m11a.py --kernel kernel \
+            --camera-build /tmp/mondrian-camera-platform --out /tmp/mondrian-m11a
       - name: Preserve source, exact binary hashes and errors
         if: always()
         uses: actions/upload-artifact@v4
@@ -79,6 +87,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
           path: |
+            /tmp/mondrian-m11a/
             /tmp/mondrian-camera-platform/images/*.dtbo
             /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
             /tmp/mondrian-camera-platform/mondrian-camera-board.preprocessed.dts

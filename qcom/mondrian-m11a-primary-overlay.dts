@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include "mondrian-sde-display-mtp-overlay.dts"
+
+/* The bootloader can still select a panel explicitly. This M11A build
+ * also resolves the primary display when no override is passed to DRM.
+ */
+&sde_dsi {
+	qcom,dsi-default-panel = <&dsi_m11a_42_02_0a_dsc_cmd>;
+};

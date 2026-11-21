@@ -21,9 +21,9 @@
   },
   "qualification": {
     "manufacturer_panel_parameters_verified": false,
-    "m11a_dt_source_reviewed": false,
+    "m11a_dt_source_reviewed": true,
     "independent_pe_panel_dts_implemented": false,
-    "full_m11a_dtb_compiled": false,
+    "full_m11a_dtb_compiled": true,
     "dsc_timing_verified_on_hardware": false,
     "udfps_lhbm_verified_on_hardware": false,
     "production_dtbo_img_approved": false,
@@ -31,6 +31,23 @@
     "manufacturer_dtbo_and_vendor_boot_crosschecked": false
   },
   "product_selection_allowed": false,
-  "status": "BLOCKED_MISSING_XIAOMI_M11A_OEM_PANEL_SOURCE",
-  "notes": "LineageOS or other ROM sources are read-only comparative references, never panel source inputs for PE-Reborn. Xiaomi stock DTBO extraction is diagnostic, not authorship/provenance certification."
+  "status": "OEM_M11A_SOURCE_COMPILED_STOCK_ON_AND_LHBM_COMMANDS_DIFFER",
+  "notes": "The board DTS is published separately from the mondrian-s-oss kernel tree. The published M11A power tree, panel ID, resolution, refresh rates, DSC slice geometry and PHY timings match the reviewed global firmware entries. Panel-on and local-HBM payloads differ. Product selection requires matching the installed panel revision and its runtime driver.",
+  "display_source": {
+    "repository": "MiCode/vendor_qcom_proprietary_display-devicetree",
+    "branch": "garnet-t-oss",
+    "commit": "ab5bc7b921d3d4072ce11eecfde984382e3ec695",
+    "kernel_commit": "ef722b7b3773dacc805a65fd42d022206001266a",
+    "board": "display/mondrian-sde-display-mtp-overlay.dts",
+    "panel": "display/dsi-panel-m11a-42-02-0a-dsc-cmd.dtsi",
+    "panel_id": "0x4d31314100420200",
+    "board_id": [
+      65544,
+      0
+    ],
+    "xiaomi_board_id": [
+      14,
+      0
+    ]
+  }
 }
