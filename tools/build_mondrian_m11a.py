@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 from tempfile import TemporaryDirectory
 
@@ -45,6 +46,29 @@ def byte_property(dtb, node, name):
     return bytes(int(value, 16) for value in raw.split())
 
 
+def verify_lhbm_updates(dtb, mode):
+    properties = subprocess.check_output(["fdtget", "-p", dtb, mode], text=True).splitlines()
+    required = {"normal-white-1000nit", "normal-white-110nit", "normal-green-500nit",
+                "off-to-normal", "off-to-hbm", "hlpm-white-1000nit", "hlpm-white-110nit"}
+    prefix = "mi,mdss-dsi-local-hbm-"
+    for prop in properties:
+        if not prop.startswith(prefix) or not prop.endswith("-command-update"):
+            continue
+        commands = command_packets(byte_property(dtb, mode, prop.removesuffix("-update")))
+        updates = byte_property(dtb, mode, prop)
+        if not updates or len(updates) % 12:
+            raise ValueError(f"{mode}: invalid update table for {prop}")
+        for register, index, size in struct.iter_unpack(">III", updates):
+            if index >= len(commands):
+                raise ValueError(f"{mode}: {prop} references missing packet {index}")
+            payload = commands[index][1]
+            if payload[0] != register or not 0 < size < len(payload):
+                raise ValueError(f"{mode}: {prop} does not fit packet {index}")
+        required.discard(prop[len(prefix):-len("-command-update")])
+    if required:
+        raise ValueError(f"{mode}: missing local HBM update tables {sorted(required)}")
+
+
 def verify_panel(dtb):
     def read(path, key, fmt="x"):
         return subprocess.check_output(["fdtget", "-t", fmt, dtb, path, key], text=True).strip()
@@ -59,6 +83,9 @@ def verify_panel(dtb):
             read(panel, "qcom,panel-supply-entries") != read(supplies, "phandle") or
             read(panel, "mi,panel-id") != "4d313141 420200"):
         raise ValueError(f"{dtb.name}: primary display or supply mapping does not match M11A")
+    ready_frames = int(read(panel, "mi,local-hbm-ui-ready-delay-num-frame"), 16)
+    if ready_frames != 4:
+        raise ValueError(f"{dtb.name}: unexpected M11A FOD readiness delay")
     on_counts = {}
     timings = panel + "/qcom,mdss-dsi-display-timings"
     for name in subprocess.check_output(["fdtget", "-l", dtb, timings], text=True).splitlines():
@@ -75,11 +102,12 @@ def verify_panel(dtb):
         power_on = [(payload[0], delay) for delay, payload in on if payload[0] in (0x11, 0x29)]
         if power_on != [(0x11, 120), (0x29, 0)] or rate in on_counts:
             raise ValueError(f"{dtb.name}: invalid M11A initialization for {rate} Hz")
+        verify_lhbm_updates(dtb, node)
         on_counts[rate] = len(on)
     if sorted(on_counts) != [60, 90, 120]:
         raise ValueError(f"{dtb.name}: unexpected M11A refresh rates {sorted(on_counts)}")
     return {"panel": panel, "refresh_hz": sorted(on_counts), "panel_on_packets": on_counts,
-            "sha256": digest(dtb)}
+            "fod_ready_delay_frames": ready_frames, "sha256": digest(dtb)}
 
 
 def main():
@@ -103,8 +131,9 @@ def main():
         temp = Path(directory)
         display = temp / "display"
         shutil.copytree(upstream / "display", display)
-        subprocess.run(["git", "apply", ROOT / "patches/mondrian-m11a-panel-on-90hz.patch"],
-                       cwd=temp, check=True)
+        for patch in ("mondrian-m11a-panel-on-90hz.patch", "mondrian-m11a-lhbm-commands.patch"):
+            subprocess.run(["patch", "--batch", "--forward", "--fuzz=0", "-s", "-p1",
+                            "-i", ROOT / "patches" / patch], cwd=temp, check=True)
         cape = temp / "cape-sde.dtbo"
         board = temp / "mondrian-m11a-primary.dtbo"
         compile_overlay(display / "cape-sde.dts", cape, args.kernel, display, temp)
