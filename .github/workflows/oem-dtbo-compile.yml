@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: PixelExperience-Reborn/android_kernel_xiaomi_sm8450
-          ref: c67ed74ffe11bd2133b560078a20cf0c04e18d97
+          ref: 2efda4cf1afa2a7098d5abd4806769903e181f73
           path: kernel
           persist-credentials: false
       - name: Install Device Tree tools
