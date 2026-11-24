@@ -89,6 +89,17 @@ def verify_panel(dtb):
     primary = symbol("sde_dsi")
     panel = symbol("dsi_m11a_42_02_0a_dsc_cmd")
     supplies = symbol("dsi_panel_pwr_supply_M11a")
+    touch = symbol("qupv3_se4_spi") + "/xiaomi_touch@0"
+    alternate = symbol("dsi_r66451_amoled_video")
+    touch_panels = read(touch, "panel").split()
+    expected_touch_panels = [read(node, "phandle") for node in
+                             (primary, panel, alternate)]
+    touch_properties = subprocess.check_output(
+        ["fdtget", "-p", dtb, touch], text=True).splitlines()
+    if (read(touch, "compatible", "s") != "goodix,gt9916S" or
+            touch_panels != expected_touch_panels or
+            "goodix,require-panel-notifier" not in touch_properties):
+        raise ValueError(f"{dtb.name}: Goodix primary DSI notifier link is invalid")
     if (read(primary, "qcom,dsi-default-panel") != read(panel, "phandle") or
             read(panel, "qcom,panel-supply-entries") != read(supplies, "phandle") or
             read(panel, "mi,panel-id") != "4d313141 420200"):
@@ -120,6 +131,8 @@ def verify_panel(dtb):
     if sorted(on_counts) != [60, 90, 120]:
         raise ValueError(f"{dtb.name}: unexpected M11A refresh rates {sorted(on_counts)}")
     return {"panel": panel, "refresh_hz": sorted(on_counts), "panel_on_packets": on_counts,
+            "goodix_primary_dsi_phandle_verified": True,
+            "goodix_notifier_runtime_verified": False,
             "fod_ready_delay_frames": ready_frames, "sha256": digest(dtb)}
 
 
