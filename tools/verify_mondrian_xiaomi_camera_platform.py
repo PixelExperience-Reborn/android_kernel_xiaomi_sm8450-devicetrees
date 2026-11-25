@@ -79,6 +79,15 @@ def verify_config(data):
             "path": "upstream/xiaomi-display",
             "url": "https://github.com/MiCode/vendor_qcom_proprietary_display-devicetree.git",
         },
+        # Qualcomm WAIPIO audio and video DT (qualcomm-multimedia-dt-source-lock.json).
+        'submodule "upstream/qualcomm/audio-devicetree"': {
+            "path": "upstream/qualcomm/audio-devicetree",
+            "url": "https://git.codelinaro.org/clo/la/platform/vendor/qcom/opensource/audio-devicetree.git",
+        },
+        'submodule "upstream/qualcomm/video-devicetree"': {
+            "path": "upstream/qualcomm/video-devicetree",
+            "url": "https://git.codelinaro.org/clo/la/platform/vendor/opensource/video-devicetree.git",
+        },
     }
     if set(parser.sections()) != set(entries):
         raise ValueError("unexpected OEM submodules or missing manufacturer source")

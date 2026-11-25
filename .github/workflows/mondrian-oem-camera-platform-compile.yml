@@ -20,6 +20,12 @@ on:
       - upstream/xiaomi-camera-platform
       - mondrian-camera-platform-source-lock.json
       - .github/workflows/mondrian-oem-camera-platform-compile.yml
+      - qcom/mondrian-audio-board-overlay.dts
+      - include/bindings/**
+      - qualcomm-multimedia-dt-source-lock.json
+      - tools/build_mondrian_multimedia.py
+      - upstream/qualcomm/audio-devicetree
+      - upstream/qualcomm/video-devicetree
   workflow_dispatch:
 
 permissions:
@@ -81,6 +87,12 @@ jobs:
         run: |
           python3 tools/build_mondrian_m11a.py --kernel kernel \
             --camera-build /tmp/mondrian-camera-platform --out /tmp/mondrian-m11a
+      - name: Add Qualcomm WAIPIO audio (Xiaomi mondrian overlay) and video DT
+        run: |
+          python3 tools/build_mondrian_multimedia.py --kernel kernel \
+            --m11a-build /tmp/mondrian-m11a --out /tmp/mondrian-multimedia
+          echo "[PASS] AudioReach sound card, SPF/LPASS, WCD938x (Xiaomi 2750 mV), AW882xx and WAIPIO VIDC on all 3 Cape boards" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PENDING] MMRM DT (needs CAPE coefficients), dtbo.img packaging and hardware" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve source, exact binary hashes and errors
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,6 +102,7 @@ jobs:
           retention-days: 7
           path: |
             /tmp/mondrian-m11a/
+            /tmp/mondrian-multimedia/
             /tmp/mondrian-camera-platform/images/*.dtbo
             /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
             /tmp/mondrian-camera-platform/mondrian-camera-board.preprocessed.dts

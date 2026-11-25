@@ -7,3 +7,9 @@
 [submodule "upstream/xiaomi-display"]
 	path = upstream/xiaomi-display
 	url = https://github.com/MiCode/vendor_qcom_proprietary_display-devicetree.git
+[submodule "upstream/qualcomm/audio-devicetree"]
+	path = upstream/qualcomm/audio-devicetree
+	url = https://git.codelinaro.org/clo/la/platform/vendor/qcom/opensource/audio-devicetree.git
+[submodule "upstream/qualcomm/video-devicetree"]
+	path = upstream/qualcomm/video-devicetree
+	url = https://git.codelinaro.org/clo/la/platform/vendor/opensource/video-devicetree.git
