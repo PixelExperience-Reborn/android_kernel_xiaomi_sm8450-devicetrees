@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "device": "mondrian",
+  "soc": "SM8475",
+  "qualcomm_release": "LA.VENDOR.1.0.r1-11900-WAIPIO.0",
+  "audio": {
+    "gitlink": "upstream/qualcomm/audio-devicetree",
+    "url": "https://git.codelinaro.org/clo/la/platform/vendor/qcom/opensource/audio-devicetree.git",
+    "commit": "50ccb9f0fb8c6a138a0946e81ae5beb700264fd1",
+    "commit_date": "2022-03-03",
+    "selection": "Last audio-devicetree commit before the 2022-03-14 LA.VENDOR 11900 release; contains the CAPE and WAIPIO audio DT.",
+    "blobs": {
+      "waipio-audio.dtsi": "0a23bc56e9aba94b5f0a2a023a82b8063afd3f35",
+      "waipio-audio-mtp.dtsi": "dae8754e4e805250fef0366cce48464810641de9",
+      "waipio-lpi.dtsi": "e570a6e7c34ea089bfbdeb872f43266e020e9ebd",
+      "msm-audio-lpass.dtsi": "de99b2ef59a93aed1fe151e42e33caf91e33f3cf",
+      "cape-audio.dts": "bace98952e924b0be575709ed81b9c2b32984092",
+      "cape-audio-mtp.dtsi": "072ec21e1936f5e56cef534fff3981bfe53d2a59"
+    },
+    "xiaomi_overlay": {
+      "path": "upstream/xiaomi-dts/qcom/waipio-audio-overlay.dtsi",
+      "blob": "324f5d0fc75203fa8c6c549c3566e6c2a6ca64e3",
+      "replaces": "waipio-audio-overlay.dtsi"
+    }
+  },
+  "video": {
+    "gitlink": "upstream/qualcomm/video-devicetree",
+    "url": "https://git.codelinaro.org/clo/la/platform/vendor/opensource/video-devicetree.git",
+    "commit": "7c85d65ec51887baa2886c5a9df8223d0b0cb01b",
+    "tag": "LA.VENDOR.15.4.1.r1-07900-WAIPIO.0",
+    "selection": "Only public WAIPIO video DT in the legacy qcom,msm-vidc binding read by video-driver 8608fb2; its waipio-vidc.dts already lists the CAPE msm-ids 530/531/540.",
+    "blobs": {
+      "waipio-vidc.dts": "f04f5fdd0dc46eb83fde070a1f3a0a0e39207b3a",
+      "waipio-vidc.dtsi": "a575b071743ae522916a064c24a721d12f67b8e8"
+    }
+  },
+  "mmrm": {
+    "selected": false,
+    "reason": "mmrm-driver 69e304b reads exactly five voltage corners (LOW_SVS, SVS, SVS_L1, NOM, TURBO); public Qualcomm MMRM DTs carry six or eight WAIPIO corners and no CAPE coefficients. MMRM clients fall back to plain clock control when MMRM is absent."
+  },
+  "qualification": {
+    "compiled_and_applied": false,
+    "hardware_verified": false,
+    "production_dtbo_approved": false
+  }
+}

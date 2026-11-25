@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "allow": {
+    "qcom,cape": {
+      "reason": "Root machine compatible of the SoC base DTB; selects the platform, it is not a device."
+    },
+    "qcom,cape-v2": {
+      "reason": "Root machine compatible of the SoC base DTB; selects the platform, it is not a device."
+    },
+    "qcom,capep": {
+      "reason": "Root machine compatible of the SoC base DTB; selects the platform, it is not a device."
+    },
+    "qcom,kryo": {
+      "reason": "CPU and cache topology nodes consumed by arm64 architecture code (CPU enumeration, cacheinfo), not by platform drivers."
+    },
+    "arm,arch-cache": {
+      "reason": "CPU and cache topology nodes consumed by arm64 architecture code (CPU enumeration, cacheinfo), not by platform drivers."
+    },
+    "android,firmware": {
+      "reason": "Read by Android first-stage init from /proc/device-tree/firmware/android, not by a kernel driver."
+    },
+    "android,fstab": {
+      "reason": "Read by Android first-stage init from /proc/device-tree/firmware/android, not by a kernel driver."
+    },
+    "android,vendor": {
+      "reason": "Read by Android first-stage init from /proc/device-tree/firmware/android, not by a kernel driver."
+    },
+    "android,vbmeta": {
+      "reason": "Read by Android first-stage init from /proc/device-tree/firmware/android, not by a kernel driver."
+    },
+    "arm,scp-shmem": {
+      "reason": "SCMI shared-memory region referenced through the shmem phandle of the SCMI node; arm_scmi parses it without matching this compatible.",
+      "requires_config": "CONFIG_ARM_SCMI_PROTOCOL"
+    },
+    "slim217,221": {
+      "reason": "SLIMbus device matched by slim_device_id {0x217, 0x221} in drivers/bluetooth/btfm_slim.c, not by an OF table.",
+      "requires_config": "CONFIG_BTFM_SLIM"
+    },
+    "qcom,smmu-kgsl-cb": {
+      "reason": "KGSL IOMMU context-bank child parsed from its parent by kgsl_iommu.c.",
+      "requires_config": "CONFIG_QCOM_KGSL"
+    },
+    "qcom,msm-imem": {
+      "reason": "IMEM container; its children are looked up by their own compatibles by enabled drivers (memory_dump_v2, boot_stats, qcom-dload-mode, qcom_pil_info, f_diag, vendor hooks)."
+    },
+    "qcom,msm-imem-restart_reason": {
+      "reason": "Read only by the legacy msm-poweroff driver (CONFIG_POWER_RESET_MSM), which Xiaomi's mondrian configuration leaves off; reboot reasons use qcom-reboot-reason (PON).",
+      "requires_config": "CONFIG_POWER_RESET_QCOM_REBOOT_REASON"
+    },
+    "arm,primecell": {
+      "reason": "AMBA device (CoreSight) matched by peripheral ID tables on the AMBA bus, not by an OF compatible.",
+      "requires_config": "CONFIG_ARM_AMBA"
+    },
+    "arm,coresight-cti": {
+      "reason": "CoreSight CTI is an AMBA driver (amba_id cti_ids) matched by peripheral ID.",
+      "requires_config": "CONFIG_CORESIGHT_CTI"
+    },
+    "qcom,va-minidump": {
+      "reason": "Debug feature built only by Xiaomi's mondrian_consolidate.config debug variant; the production gki variant used here leaves it off."
+    },
+    "qcom,msm-rtb": {
+      "reason": "Debug feature built only by Xiaomi's mondrian_consolidate.config debug variant; the production gki variant used here leaves it off."
+    },
+    "arm,embedded-trace-extension": {
+      "reason": "Debug feature built only by Xiaomi's mondrian_consolidate.config debug variant; the production gki variant used here leaves it off."
+    },
+    "qcom,gh-vm-loader-sec": {
+      "reason": "Gunyah secure-VM (trusted UI) loader and TLMM sharing; not enabled by any Xiaomi mondrian configuration."
+    },
+    "qcom,tlmm-vm-mem-access": {
+      "reason": "Gunyah secure-VM (trusted UI) loader and TLMM sharing; not enabled by any Xiaomi mondrian configuration."
+    },
+    "qcom,ipcc-self-ping": {
+      "reason": "IPCC self-ping debug client; no driver exists in the Xiaomi mondrian-s-oss kernel."
+    },
+    "xiaomi-touch": {
+      "reason": "Xiaomi touch-feature class node; the driver is not in Xiaomi's public mondrian source. The Goodix Berlin driver exposes double-tap and FOD gesture control itself."
+    },
+    "xiaomi,hardware-info": {
+      "reason": "Xiaomi hardware-info reporting node used by MIUI/HyperOS apps; driver not published by Xiaomi and not required by AOSP."
+    },
+    "qcom,msm-dai-q6-dev": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-q6-spdif": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-q6-tdm": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-tdm": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-hdmi-dba-codec-rx": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-auxpcm-dev": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-hostless": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-q6": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-lsm-client": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-cdc-dma-dev": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-cdc-dma": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-q6-mi2s": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-mi2s": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-dtmf": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-loopback": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-q6-hdmi": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-afe": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-dai-fe": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-voice": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-voip-dsp": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-compress-dsp": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-transcode-loopback": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-dsp-noirq": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-dsp": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-compr-dsp": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    },
+    "qcom,msm-pcm-routing": {
+      "reason": "Legacy Q6 AFE/ASM platform node from Qualcomm msm-audio-lpass.dtsi. WAIPIO uses the AudioReach SPF/GPR stack; the waipio machine driver does not reference these nodes and the selected audio-kernel has no driver for them, as on the Qualcomm reference."
+    }
+  }
+}

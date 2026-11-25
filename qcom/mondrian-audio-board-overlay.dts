@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * PE-Reborn mondrian (SM8475/CAPE) audio board overlay.
+ *
+ * Qualcomm audio-devicetree 50ccb9f (LA.VENDOR 11900 era) provides the CAPE
+ * MTP audio board chain. Its waipio-audio-overlay.dtsi is replaced at build
+ * time by Xiaomi's mondrian-s-oss version (blob 324f5d0), which carries the
+ * factory mondrian changes (micbias 2750 mV, three LPASS macros, WSA
+ * speakers disabled). The AW882xx amplifiers and MI2S2 come from Xiaomi's
+ * mondrian-sm8475.dtsi board DT.
+ */
+/dts-v1/;
+/plugin/;
+
+#include "cape-audio-mtp.dtsi"
+
+/ {
+	model = "Mondrian based on Qualcomm Technologies, Inc SM8475";
+	compatible = "qcom,cape-mtp", "qcom,cape", "qcom,mtp";
+	qcom,msm-id = <530 0x10000>, <531 0x10000>, <540 0x10000>;
+	qcom,board-id = <0x10008 0>;
+	xiaomi,miboard-id = <0xE 0>;
+};

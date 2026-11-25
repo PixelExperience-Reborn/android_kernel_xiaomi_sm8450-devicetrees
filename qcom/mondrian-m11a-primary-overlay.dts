@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include "mondrian-sde-display-mtp-overlay.dts"
+
+/* The bootloader can still select a panel explicitly. This M11A build
+ * also resolves the primary display when no override is passed to DRM.
+ */
+&sde_dsi {
+	qcom,dsi-default-panel = <&dsi_m11a_42_02_0a_dsc_cmd>;
+};
+
+/* Qualcomm registers its drm_panel on the DSI platform device, not on
+ * the timing-description node. Keep the original Xiaomi panel alternatives
+ * for manufacturer Display candidates, with the live DSI provider first.
+ */
+&qupv3_se4_spi {
+	xiaomi_touch@0 {
+		panel = <&sde_dsi &dsi_m11a_42_02_0a_dsc_cmd
+			 &dsi_r66451_amoled_video>;
+		goodix,require-panel-notifier;
+	};
+};
+
+&dsi_m11a_42_02_0a_dsc_cmd {
+	xiaomi,mondrian-m11a-fod;
+	qcom,mdss-dsi-display-timings {
+		timing@0 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+		timing@1 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+		timing@2 {
+#include "mondrian-m11a-lhbm-low-power.dtsi"
+		};
+	};
+};

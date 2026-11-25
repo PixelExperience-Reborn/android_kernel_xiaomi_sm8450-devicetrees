@@ -1,12 +1,19 @@
 name: Mondrian SM8475 DTBO contract (source only)
 on:
   push:
-    branches: [seventeen, 'audit/**']
+    branches: [seventeen, 'audit/**', 'bringup/**']
   pull_request:
 jobs:
   contracts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Install pinned LZ4 decoder for modern Android DTBO tests
+        run: |
+          python3 -m venv /tmp/pe-mondrian-dtbo-venv
+          /tmp/pe-mondrian-dtbo-venv/bin/python -m pip install --disable-pip-version-check lz4==4.4.5
       - name: Validate board, panel, UDFPS and DTBO gates
-        run: python3 -m unittest discover -s tests -v
+        run: /tmp/pe-mondrian-dtbo-venv/bin/python -m unittest discover -s tests -v
