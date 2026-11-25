@@ -22,8 +22,8 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertEqual(d["soc"], "SM8475")
         self.assertEqual(d["android_base"], "AOSP 17")
         self.assertEqual(d["source_repository"], "MiCode/kernel_devicetree")
-        self.assertEqual(len(d["original_git_blobs"]), 7)
-        self.assertEqual(len(d["adaptations"]), 3)
+        self.assertEqual(len(d["original_git_blobs"]), 9)
+        self.assertEqual(len(d["adaptations"]), 6)
 
     def test_exact_oem_blobs_with_only_three_declared_adaptations(self):
         for path, expected in self.lock["original_git_blobs"].items():

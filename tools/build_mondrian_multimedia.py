@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Add the Qualcomm WAIPIO audio and video device trees to the mondrian DTBs.
+"""Add the Qualcomm WAIPIO audio, video and MMRM device trees to the mondrian DTBs.
 
 Inputs are the three M11A display DTBs from build_mondrian_m11a.py. The
 Qualcomm audio-devicetree and video-devicetree gitlinks and the Xiaomi
@@ -10,8 +10,9 @@ Qualcomm's only inside a temporary copy; the pinned sources stay pristine.
 fdtoverlay applies only fragments, never an overlay's root properties, so the
 merged DTB must keep its base root unchanged, while the mondrian audio board
 overlay itself must carry the CAPE msm-ids and board-id 0x10008 that the
-bootloader matches. MMRM is intentionally absent (see the lock). This is a
-diagnostic build, not a bootloader dtbo.img.
+bootloader matches. MMRM comes from qcom/mondrian-mmrm-overlay.dts, built from
+the stock OS3 CAPE values (see the lock). This is a diagnostic build, not a
+bootloader dtbo.img.
 """
 import argparse
 import hashlib
@@ -52,8 +53,11 @@ def verify_sources(lock):
     overlay = lock["audio"]["xiaomi_overlay"]
     if git(ROOT, "hash-object", "--no-filters", overlay["path"]) != overlay["blob"]:
         raise ValueError("Xiaomi waipio-audio-overlay.dtsi drift")
-    if lock["mmrm"]["selected"]:
-        raise ValueError("MMRM DT must stay unselected until CAPE coefficients exist")
+    mmrm = lock["mmrm"]
+    if not mmrm["selected"]:
+        raise ValueError("the stock-derived CAPE MMRM DT must be selected")
+    if git(ROOT, "hash-object", "--no-filters", mmrm["overlay"]) != mmrm["overlay_blob"]:
+        raise ValueError("mondrian MMRM overlay drift")
 
 
 def compile_overlay(source, dest, kernel, includes, temp):
@@ -108,7 +112,7 @@ def verify_full(dtb):
     for compatible, minimum in (("qcom,waipio-asoc-snd", 1), ("qcom,spf-core-platform", 1),
                                 ("qcom,lpass-cdc", 1), ("qcom,wcd938x-codec", 1),
                                 ("awinic,aw882xx_smartpa", 2), ("qcom,msm-vidc", 1),
-                                ("qcom,msm-vidc,context-bank", 1)):
+                                ("qcom,msm-vidc,context-bank", 1), ("qcom,msm-mmrm", 1)):
         found = having(compatible)
         if len(found) < minimum:
             raise ValueError(f"{dtb.name}: expected {minimum} enabled {compatible}, found {len(found)}")
@@ -119,6 +123,12 @@ def verify_full(dtb):
     codec = having("qcom,wcd938x-codec")[0][1]
     if "qcom,cdc-micbias1-mv = <0xabe>;" not in codec:
         raise ValueError(f"{dtb.name}: Xiaomi mondrian 2750 mV micbias overlay not applied")
+    mmrm = having("qcom,msm-mmrm")[0][1]
+    # dtc prints string lists joined by \\0 when decompiling a DTB.
+    for needle in ('mm-rail-corners = "lowsvs\\0svs\\0svsl1\\0nom\\0turbo";',
+                   "scaling-fact-leak = <0x9c0f 0xa4035 0xbf72c 0xd7ef4 0x108639>;"):
+        if needle not in mmrm:
+            raise ValueError(f"{dtb.name}: MMRM node differs from the stock CAPE values")
     return checks
 
 
@@ -157,7 +167,7 @@ def main():
               "audio_devicetree_commit": lock["audio"]["commit"],
               "video_devicetree_commit": lock["video"]["commit"],
               "xiaomi_audio_overlay_blob": lock["audio"]["xiaomi_overlay"]["blob"],
-              "mmrm_dt_selected": False, "boards": {},
+              "mmrm_dt_selected": True, "boards": {},
               "hardware_verified": False, "production_dtbo_approved": False}
     with TemporaryDirectory(dir=args.out) as directory:
         temp = Path(directory)
@@ -175,18 +185,20 @@ def main():
         compile_overlay(ROOT / "qcom/mondrian-audio-board-overlay.dts", board_audio,
                         args.kernel, [audio], temp)
         report["board_overlay_selector"] = verify_board_overlay(board_audio)
-        outputs = [soc_audio, soc_video, board_audio]
+        board_mmrm = temp / "mondrian-mmrm.dtbo"
+        compile_overlay(ROOT / lock["mmrm"]["overlay"], board_mmrm, args.kernel, [], temp)
+        outputs = [soc_audio, soc_video, board_audio, board_mmrm]
         for name in BASES:
             base = args.m11a_build / (name + "-mondrian-m11a.dtb")
             merged = temp / (name + "-mondrian-full.dtb")
-            run(["fdtoverlay", "-i", base, "-o", merged, soc_audio, soc_video, board_audio])
+            run(["fdtoverlay", "-i", base, "-o", merged, soc_audio, soc_video, board_audio, board_mmrm])
             if root_identity(merged) != root_identity(base):
                 raise ValueError(f"{name}: multimedia overlays changed the base root identity")
             report["boards"][name] = {"input_sha256": digest(base),
                                       "output_sha256": digest(merged),
                                       "checks": verify_full(merged)}
             outputs.append(merged)
-        report["overlays_sha256"] = {p.name: digest(p) for p in outputs[:3]}
+        report["overlays_sha256"] = {p.name: digest(p) for p in outputs[:4]}
         for binary in outputs:
             binary.replace(args.out / binary.name)
     (args.out / "mondrian-multimedia-build.json").write_text(json.dumps(report, indent=2) + "\n")

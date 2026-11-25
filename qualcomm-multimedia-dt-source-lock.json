@@ -35,8 +35,14 @@
     }
   },
   "mmrm": {
-    "selected": false,
-    "reason": "mmrm-driver 69e304b reads exactly five voltage corners (LOW_SVS, SVS, SVS_L1, NOM, TURBO); public Qualcomm MMRM DTs carry six or eight WAIPIO corners and no CAPE coefficients. MMRM clients fall back to plain clock control when MMRM is absent."
+    "selected": true,
+    "overlay": "qcom/mondrian-mmrm-overlay.dts",
+    "overlay_blob": "51fec1c9dd81a746bce59b184b26e4917462aa1e",
+    "source": "stock OS3.0.8.0.VMNCNXM: CAPE DTB of vendor_boot + mondrian entry of dtbo",
+    "stock_dtbo_sha256": "8580bc0bbe689784798eec2e055368928b63f1aeb631bb3eaf1c164d878f1d8b",
+    "corners": 5,
+    "client_entries": 28,
+    "reason": "Previously unselected because public Qualcomm WAIPIO MMRM DTs have six or eight voltage corners and no CAPE coefficients while mmrm-driver 69e304b reads exactly five. The stock OS3 CAPE node has exactly five voltage corners (lowsvs, svs, svsl1, nom, turbo), CAPE scaling factors and 28 five-cell clock-source entries, the format this driver parses; every clock id resolves to a *_CLK_SRC of our kernel headers. Without the node msm-mmrm.ko does not probe."
   },
   "qualification": {
     "compiled_and_applied": false,

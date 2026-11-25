@@ -32,8 +32,14 @@ class MultimediaSources(unittest.TestCase):
         self.assertEqual(audio["xiaomi_overlay"]["replaces"], "waipio-audio-overlay.dtsi")
         self.assertEqual(video["commit"], "7c85d65ec51887baa2886c5a9df8223d0b0cb01b")
         self.assertEqual(video["blobs"]["waipio-vidc.dtsi"], "a575b071743ae522916a064c24a721d12f67b8e8")
-        self.assertFalse(LOCK["mmrm"]["selected"])
+        self.assertTrue(LOCK["mmrm"]["selected"])
         self.assertIn("five voltage corners", LOCK["mmrm"]["reason"])
+        overlay = (ROOT / LOCK["mmrm"]["overlay"]).read_text()
+        self.assertEqual(overlay.count("<MMRM_DOMAIN_"), LOCK["mmrm"]["client_entries"])
+        self.assertIn('mm-rail-corners = "lowsvs", "svs", "svsl1", "nom", "turbo";', overlay)
+        blob = subprocess.check_output(["git", "-C", str(ROOT), "hash-object", "--no-filters",
+                                        LOCK["mmrm"]["overlay"]], text=True).strip()
+        self.assertEqual(blob, LOCK["mmrm"]["overlay_blob"])
         for gitlink, commit in ((audio["gitlink"], audio["commit"]), (video["gitlink"], video["commit"])):
             tree = subprocess.check_output(["git", "-C", str(ROOT), "ls-tree", "HEAD", gitlink], text=True)
             self.assertEqual(tree.strip(), "160000 commit " + commit + "\t" + gitlink)
@@ -60,7 +66,7 @@ class MultimediaSources(unittest.TestCase):
 
     def test_build_order_and_checks(self):
         tool = (ROOT / "tools/build_mondrian_multimedia.py").read_text()
-        self.assertIn('run(["fdtoverlay", "-i", base, "-o", merged, soc_audio, soc_video, board_audio])', tool)
+        self.assertIn('run(["fdtoverlay", "-i", base, "-o", merged, soc_audio, soc_video, board_audio, board_mmrm])', tool)
         self.assertIn('"qcom,cdc-micbias1-mv = <0xabe>;"', tool)
         self.assertIn('{"qcom,msm-vidc-waipio", "qcom,msm-vidc-iris2"}', tool)
         self.assertIn('("awinic,aw882xx_smartpa", 2)', tool)
