@@ -123,6 +123,16 @@ def verify_full(dtb):
     codec = having("qcom,wcd938x-codec")[0][1]
     if "qcom,cdc-micbias1-mv = <0xabe>;" not in codec:
         raise ValueError(f"{dtb.name}: Xiaomi mondrian 2750 mV micbias overlay not applied")
+    sound = having("qcom,waipio-asoc-snd")[0][1]
+    for needle in ("qcom,tdm-audio-intf = <0x01>;", 'qcom,upd_backends_used = "wcd";',
+                   "qcom,upd_lpass_reg_addr = <0x3200418 0x33b0300>;"):
+        if needle not in sound:
+            raise ValueError(f"{dtb.name}: stock mondrian TDM/ultrasound sound-card setting missing")
+    if '"HAP_IN"' in sound:
+        raise ValueError(f"{dtb.name}: HAP_IN route is not in the stock mondrian card")
+    enabled = {path.rsplit("/", 1)[-1] for path, _, _ in nodes}
+    if "tert_tdm_pinctrl" not in enabled or "tert_mi2s_pinctrl" in enabled:
+        raise ValueError(f"{dtb.name}: the tertiary interface must run TDM as on stock")
     mmrm = having("qcom,msm-mmrm")[0][1]
     # dtc prints string lists joined by \\0 when decompiling a DTB.
     for needle in ('mm-rail-corners = "lowsvs\\0svs\\0svsl1\\0nom\\0turbo";',

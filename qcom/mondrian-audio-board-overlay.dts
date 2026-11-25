@@ -21,3 +21,127 @@
 	qcom,board-id = <0x10008 0>;
 	xiaomi,miboard-id = <0xE 0>;
 };
+
+/*
+ * Mondrian audio as in the stock OS3.0.8.0.VMNCNXM device tree. Its PAL
+ * configuration (resourcemanager_waipio_mtp.xml) routes speaker, earpiece
+ * and ultrasound through TDM-LPAIF-RX-TERTIARY to the AW882xx amplifiers,
+ * so the tertiary interface runs TDM, not the MI2S of the Qualcomm MTP
+ * reference. Every property below is parsed by our audio-kernel
+ * (asoc/waipio.c, asoc/msm_common.c, asoc/codecs/wcd-mbhc-v2.c).
+ */
+&cdc_tert_mi2s_gpios {
+	status = "disabled";
+};
+
+&cdc_tert_tdm_gpios {
+	status = "ok";
+};
+
+/* No WSA883x on mondrian: keep the WSA2 SoundWire pins free, as stock. */
+&wsa2_swr_gpios {
+	status = "disabled";
+};
+
+&tlmm {
+	uart_audio_en_active: uart_audio_en_active_dit {
+		mux {
+			pins = "gpio12";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio12";
+			drive-strength = <2>;
+			bias-disable;
+			output-high;
+		};
+	};
+
+	uart_audio_en_idle: uart_audio_en_idle_dit {
+		mux {
+			pins = "gpio12";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio12";
+			drive-strength = <2>;
+			bias-pull-down;
+			output-low;
+		};
+	};
+};
+
+&soc {
+	/* MBHC UART/audio switch on GPIO 12. */
+	uart_audio_sw_gpio: msm_cdc_pinctrl@12 {
+		compatible = "qcom,msm-cdc-pinctrl";
+		pinctrl-names = "aud_active", "aud_sleep";
+		pinctrl-0 = <&uart_audio_en_active>;
+		pinctrl-1 = <&uart_audio_en_idle>;
+		#gpio-cells = <0>;
+	};
+};
+
+&waipio_snd {
+	qcom,tdm-audio-intf = <1>;
+	qcom,mi2s-clk-attribute = <1 1 1 1 1 1>;
+	qcom,tdm-clk-attribute = <1 1 1 1 1 1>;
+	qcom,tdm-max-slots = <8>;
+	qcom,mi2s-tdm-is-hw-vote-needed = <1 0 1 0 0 0>;
+	/* Ultrasound proximity detection through the WCD938x earpiece path. */
+	qcom,upd_backends_used = "wcd";
+	qcom,upd_ear_pa_reg_addr = <0x300a>;
+	qcom,upd_lpass_reg_addr = <0x3200418 0x33b0300>;
+	qcom,uart-audio-sw-gpio = <&uart_audio_sw_gpio>;
+	/* Stock routing: as the Xiaomi source without HAP_IN -> PCM_OUT. */
+	qcom,audio-routing =
+		"AMIC1", "Analog Mic1",
+		"AMIC1", "MIC BIAS1",
+		"AMIC2", "Analog Mic2",
+		"AMIC2", "MIC BIAS2",
+		"AMIC3", "Analog Mic3",
+		"AMIC3", "MIC BIAS3",
+		"AMIC4", "Analog Mic4",
+		"AMIC4", "MIC BIAS3",
+		"AMIC5", "Analog Mic5",
+		"AMIC5", "MIC BIAS4",
+		"VA AMIC1", "Analog Mic1",
+		"VA AMIC1", "VA MIC BIAS1",
+		"VA AMIC2", "Analog Mic2",
+		"VA AMIC2", "VA MIC BIAS2",
+		"VA AMIC3", "Analog Mic3",
+		"VA AMIC3", "VA MIC BIAS3",
+		"VA AMIC4", "Analog Mic4",
+		"VA AMIC4", "VA MIC BIAS3",
+		"VA AMIC5", "Analog Mic5",
+		"VA AMIC5", "VA MIC BIAS4",
+		"TX DMIC0", "Digital Mic0",
+		"Digital Mic0", "MIC BIAS3",
+		"TX DMIC1", "Digital Mic1",
+		"Digital Mic1", "MIC BIAS3",
+		"TX DMIC2", "Digital Mic2",
+		"Digital Mic2", "MIC BIAS1",
+		"TX DMIC3", "Digital Mic3",
+		"Digital Mic3", "MIC BIAS1",
+		"IN1_HPHL", "HPHL_OUT",
+		"IN2_HPHR", "HPHR_OUT",
+		"IN3_AUX", "AUX_OUT",
+		"RX_TX DEC0_INP", "TX DEC0 MUX",
+		"RX_TX DEC1_INP", "TX DEC1 MUX",
+		"RX_TX DEC2_INP", "TX DEC2 MUX",
+		"RX_TX DEC3_INP", "TX DEC3 MUX",
+		"TX SWR_INPUT", "WCD_TX_OUTPUT",
+		"VA SWR_INPUT", "VA_SWR_CLK",
+		"VA SWR_INPUT", "WCD_TX_OUTPUT",
+		"VA_AIF1 CAP", "VA_SWR_CLK",
+		"VA_AIF2 CAP", "VA_SWR_CLK",
+		"VA_AIF3 CAP", "VA_SWR_CLK",
+		"VA DMIC0", "Digital Mic0",
+		"VA DMIC1", "Digital Mic1",
+		"VA DMIC2", "Digital Mic2",
+		"VA DMIC3", "Digital Mic3",
+		"Digital Mic0", "VA MIC BIAS3",
+		"Digital Mic1", "VA MIC BIAS3",
+		"Digital Mic2", "VA MIC BIAS1",
+		"Digital Mic3", "VA MIC BIAS1";
+};
