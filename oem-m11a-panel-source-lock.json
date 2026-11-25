@@ -49,5 +49,21 @@
       14,
       0
     ]
+  },
+  "stock_os3_panel_commands": {
+    "generated": "qcom/mondrian-m11a-os3-panel-commands.dtsi",
+    "tool": "tools/extract_stock_m11a_commands.py",
+    "firmware": "OS3.0.8.0.VMNCNXM",
+    "replaces": [
+      "qcom,mdss-dsi-on-command",
+      "qcom,mdss-dsi-timing-switch-command",
+      "qcom,mdss-pan-physical-width-dimension",
+      "qcom,mdss-pan-physical-height-dimension"
+    ],
+    "packets_per_mode": {
+      "on": 135,
+      "timing_switch": 10
+    },
+    "reason": "Xiaomi's public M11A table has a 57-packet initialization and 11-packet switch; stock OS3 initializes every mode with its own 135-packet sequence (calibration, gamma/demura, post display-on settings) and switches with 10 packets. These are panel-controller commands sent unchanged by our Qualcomm DSI driver, so the stock sequences are used for all three modes (60/90/120 Hz)."
   }
 }

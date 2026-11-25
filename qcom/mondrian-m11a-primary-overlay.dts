@@ -34,3 +34,6 @@
 		};
 	};
 };
+
+/* Stock OS3.0.8.0 initialization and refresh-rate switch commands of every M11A mode. */
+#include "mondrian-m11a-os3-panel-commands.dtsi"
