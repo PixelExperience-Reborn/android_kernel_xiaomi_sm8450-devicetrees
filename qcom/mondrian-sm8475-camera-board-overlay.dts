@@ -254,6 +254,32 @@
 			output-low;
 		};
 	};
+
+	/* Macro IOVDD switch on GPIO 7, as in the stock OS3 mondrian DT. */
+	mondrian_macro_iovdd_active: mondrian-macro-iovdd-active {
+		mux {
+			pins = "gpio7";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio7";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
+
+	mondrian_macro_iovdd_suspend: mondrian-macro-iovdd-suspend {
+		mux {
+			pins = "gpio7";
+			function = "gpio";
+		};
+		config {
+			pins = "gpio7";
+			drive-strength = <2>;
+			bias-pull-down;
+			output-low;
+		};
+	};
 };
 
 &soc {
@@ -357,6 +383,27 @@
 		regulator-enable-ramp-delay = <100>;
 		gpio = <&tlmm 97 0>;
 		enable-active-high;
+	};
+
+	/*
+	 * CAMERA_MACRO_IOVDD (GPIO 7 switch from BOB), as in the stock OS3
+	 * mondrian DT. No sensor uses it (the macro sensor's cam_vio is
+	 * pm8350c L1), so the regulator core turns it off as unused at late
+	 * init, exactly as on stock, instead of leaving GPIO 7 as the
+	 * bootloader set it.
+	 */
+	mondrian_macro_iovdd: gpio-regulator@8 {
+		compatible = "regulator-fixed";
+		reg = <8 0>;
+		regulator-name = "CAMERA_MACRO_IOVDD";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-enable-ramp-delay = <100>;
+		vin-supply = <&BOB>;
+		gpio = <&tlmm 7 0>;
+		enable-active-high;
+		pinctrl-names = "macro_iovdd_active", "macro_iovdd_suspend";
+		pinctrl-0 = <&mondrian_macro_iovdd_active>, <&mondrian_macro_iovdd_suspend>;
 	};
 
 	/* GPIO specifiers are resolved by the camera resource manager at probe. */
