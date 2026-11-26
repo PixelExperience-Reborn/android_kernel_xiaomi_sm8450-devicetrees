@@ -119,6 +119,9 @@
 	nvmem-names = "hap_cfg_sdam";
 	nvmem = <&pmk8350_sdam_46>;
 	qcom,pbs-client = <&pm8350b_pbs2>;
+	/* PE-Reborn: the mondrian LRA as tuned in OS3.0.8.0 (170 Hz, 1.25 V). */
+	qcom,vmax-mv = <1250>;
+	qcom,lra-period-us = <5882>;
 };
 
 &soc {

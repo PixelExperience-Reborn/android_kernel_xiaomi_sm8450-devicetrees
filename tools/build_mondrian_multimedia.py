@@ -133,6 +133,10 @@ def verify_full(dtb):
     enabled = {path.rsplit("/", 1)[-1] for path, _, _ in nodes}
     if "tert_tdm_pinctrl" not in enabled or "tert_mi2s_pinctrl" in enabled:
         raise ValueError(f"{dtb.name}: the tertiary interface must run TDM as on stock")
+    tdm = [body for path, _, body in nodes if path.rsplit("/", 1)[-1] == "tert_tdm_pinctrl"][0]
+    tdm_phandle = re.search(r"\bphandle = <(0x[0-9a-f]+)>;", tdm)
+    if not tdm_phandle or f"qcom,tert-mi2s-gpios = <{tdm_phandle.group(1)}>;" not in sound:
+        raise ValueError(f"{dtb.name}: qcom,tert-mi2s-gpios must select the enabled TDM pins")
     mmrm = having("qcom,msm-mmrm")[0][1]
     # dtc prints string lists joined by \\0 when decompiling a DTB.
     for needle in ('mm-rail-corners = "lowsvs\\0svs\\0svsl1\\0nom\\0turbo";',

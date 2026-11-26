@@ -22,8 +22,8 @@ class MondrianOemDtsTests(unittest.TestCase):
         self.assertEqual(d["soc"], "SM8475")
         self.assertEqual(d["android_base"], "AOSP 17")
         self.assertEqual(d["source_repository"], "MiCode/kernel_devicetree")
-        self.assertEqual(len(d["original_git_blobs"]), 14)
-        self.assertEqual(len(d["adaptations"]), 18)
+        self.assertEqual(len(d["original_git_blobs"]), 16)
+        self.assertEqual(len(d["adaptations"]), 26)
 
     def test_exact_oem_blobs_with_only_three_declared_adaptations(self):
         for path, expected in self.lock["original_git_blobs"].items():
@@ -34,7 +34,9 @@ class MondrianOemDtsTests(unittest.TestCase):
                 a = adaptation["pe_binding"].encode()
                 b = adaptation["oem_binding"].encode()
                 self.assertEqual(raw.count(a), 1, path)
-                self.assertEqual(raw.count(b), 0, path)
+                # The Xiaomi fragment may only survive inside our own one
+                # (an adaptation that adds after it).
+                self.assertEqual(raw.count(b), a.count(b), path)
                 raw = raw.replace(a, b)
             self.assertEqual(blob_sha(raw), expected, path)
 

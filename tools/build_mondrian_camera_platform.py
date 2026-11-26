@@ -189,6 +189,14 @@ def verify_board_routes(before, after, hal_manifest):
         for state in states:
             pin = symbols[f"cci{bus}_{state}"] + "/config"
             changes[pin, "drive-strength"] = cells(strength)
+    # ICP IOVA map of stock OS3.0.8.0: larger shared region, same end.
+    icp = symbols["icp_iova_mem_map"]
+    for region, prop, value in (("iova-mem-region-shared", "iova-region-len", 0x12e00000),
+                                ("iova-mem-region-fwuncached-region", "iova-region-start", 0x13600000),
+                                ("iova-mem-qdss-region", "iova-region-start", 0x13d00000),
+                                ("iova-mem-region-io", "iova-region-start", 0x13e00000),
+                                ("iova-mem-region-io", "iova-region-len", 0xeb100000)):
+        changes[f"{icp}/{region}", prop] = cells(value)
     for (path, prop), value in changes.items():
         expect(path, prop, value)
     for path, props in before.items():

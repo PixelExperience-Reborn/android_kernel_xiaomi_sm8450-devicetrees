@@ -675,3 +675,29 @@
 		status = "ok";
 	};
 };
+
+/*
+ * ICP IOVA map of the stock OS3.0.8.0 device tree: the shared region is
+ * 50 MiB larger (0x12e00000 instead of 0xfc00000) and the firmware-uncached,
+ * QDSS and IO regions follow it; the map still ends at 0xfef00000. The
+ * stock camera HAL is tuned with this shared region, and cam_smmu_api.c
+ * reads every region from here.
+ */
+&icp_iova_mem_map {
+	iova-mem-region-shared {
+		iova-region-len = <0x12e00000>;
+	};
+
+	iova-mem-region-fwuncached-region {
+		iova-region-start = <0x13600000>;
+	};
+
+	iova-mem-qdss-region {
+		iova-region-start = <0x13d00000>;
+	};
+
+	iova-mem-region-io {
+		iova-region-start = <0x13e00000>;
+		iova-region-len = <0xeb100000>;
+	};
+};

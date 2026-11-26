@@ -16,7 +16,7 @@
 			linux,input-type = <1>;
 			linux,code = <KEY_VOLUMEUP>;
 			gpio-key,wakeup;
-			debounce-interval = <15>;
+			debounce-interval = <32>; /* PE-Reborn: as OS3.0.8.0 */
 			linux,can-disable;
 		};
 	};

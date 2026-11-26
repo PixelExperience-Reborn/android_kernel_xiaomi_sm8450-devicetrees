@@ -83,6 +83,11 @@
 };
 
 &waipio_snd {
+	/*
+	 * msm_common.c switches these pins active when the tertiary interface
+	 * starts and fails the stream if it cannot; they are the TDM pins.
+	 */
+	qcom,tert-mi2s-gpios = <&cdc_tert_tdm_gpios>;
 	qcom,tdm-audio-intf = <1>;
 	qcom,mi2s-clk-attribute = <1 1 1 1 1 1>;
 	qcom,tdm-clk-attribute = <1 1 1 1 1 1>;
@@ -144,4 +149,19 @@
 		"Digital Mic1", "VA MIC BIAS3",
 		"Digital Mic2", "VA MIC BIAS1",
 		"Digital Mic3", "VA MIC BIAS1";
+};
+
+/*
+ * WCD938x TX port 1 (ADC1/ADC2) of use case 0 on SoundWire data lane 2, as in
+ * the stock OS3.0.8.0 DT and Qualcomm's audio-devicetree 50ccb9f; Xiaomi's
+ * waipio-audio-overlay.dtsi keeps the older offset 2 on lane 0. Our
+ * swr-mstr-ctrl.c programs lane_ctrl, and the TX data2 pin is part of
+ * tx_swr_clk_data_pinctrl.
+ */
+&wcd938x_codec {
+	qcom,swr-tx-port-params =
+		<OFFSET1_VAL0 LANE1>, <OFFSET1_VAL0 LANE2>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>,
+		<OFFSET1_VAL0 LANE1>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>,
+		<OFFSET1_VAL0 LANE1>, <OFFSET1_VAL2 LANE0>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL2 LANE0>,
+		<OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>, <OFFSET1_VAL1 LANE0>;
 };
