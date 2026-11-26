@@ -61,7 +61,7 @@ def verify_sources(lock):
 
 
 def compile_overlay(source, dest, kernel, includes, temp):
-    preprocessed = temp / (Path(source).stem + ".dts")
+    preprocessed = temp / (Path(dest).stem + ".preprocessed.dts")
     args = ["cpp", "-nostdinc", "-undef", "-D__DTS__", "-x", "assembler-with-cpp",
             "-I", kernel / "include", "-I", ROOT / "include"]
     for include in includes:
@@ -213,6 +213,7 @@ def main():
                                       "checks": verify_full(merged)}
             outputs.append(merged)
         report["overlays_sha256"] = {p.name: digest(p) for p in outputs[:4]}
+        outputs += [temp / (o.stem + ".preprocessed.dts") for o in outputs[:4]]
         for binary in outputs:
             binary.replace(args.out / binary.name)
     (args.out / "mondrian-multimedia-build.json").write_text(json.dumps(report, indent=2) + "\n")

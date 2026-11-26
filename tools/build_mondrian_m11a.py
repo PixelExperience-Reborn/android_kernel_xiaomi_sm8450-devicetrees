@@ -17,7 +17,7 @@ def digest(path):
 
 
 def compile_overlay(source, dest, kernel, display, temp):
-    preprocessed = temp / (source.stem + ".dts")
+    preprocessed = temp / (dest.stem + ".preprocessed.dts")
     with preprocessed.open("wb") as stream:
         run(["cpp", "-nostdinc", "-undef", "-D__DTS__", "-x", "assembler-with-cpp",
              "-I", kernel / "include", "-I", display, source], stdout=stream)
@@ -171,7 +171,8 @@ def main():
             merged = temp / (name + "-mondrian-m11a.dtb")
             run(["fdtoverlay", "-i", base, "-o", merged, cape, board])
             results[name] = verify_panel(merged)
-        for binary in (cape, board, *(temp / (name + "-mondrian-m11a.dtb") for name in BASES)):
+        for binary in (cape, board, *(temp / (name + "-mondrian-m11a.dtb") for name in BASES),
+                       *(temp / (o.stem + ".preprocessed.dts") for o in (cape, board))):
             binary.replace(args.out / binary.name)
     report = {"kernel_commit": kernel_sha, "xiaomi_display_commit": display_sha,
               "boards": results, "hardware_verified": False, "production_dtbo_approved": False}

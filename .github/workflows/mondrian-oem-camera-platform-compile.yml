@@ -24,6 +24,7 @@ on:
       - include/bindings/**
       - qualcomm-multimedia-dt-source-lock.json
       - tools/build_mondrian_multimedia.py
+      - tools/build_mondrian_dtbo.py
       - upstream/qualcomm/audio-devicetree
       - upstream/qualcomm/video-devicetree
   workflow_dispatch:
@@ -92,7 +93,14 @@ jobs:
           python3 tools/build_mondrian_multimedia.py --kernel kernel \
             --m11a-build /tmp/mondrian-m11a --out /tmp/mondrian-multimedia
           echo "[PASS] AudioReach sound card, SPF/LPASS, WCD938x (Xiaomi 2750 mV), AW882xx and WAIPIO VIDC on all 3 Cape boards" >> "$GITHUB_STEP_SUMMARY"
-          echo "[PENDING] MMRM DT (needs CAPE coefficients), dtbo.img packaging and hardware" >> "$GITHUB_STEP_SUMMARY"
+      - name: Join the nine overlays into the single mondrian dtbo.img
+        run: |
+          python3 tools/build_mondrian_dtbo.py \
+            --board-build /tmp/mondrian-camera-base --camera-build /tmp/mondrian-camera-platform \
+            --m11a-build /tmp/mondrian-m11a --multimedia-build /tmp/mondrian-multimedia \
+            --out /tmp/mondrian-dtbo
+          echo "[PASS] One mondrian overlay gives the chain's tree on cape, capep and cape-v2; dtbo.img v0 with one entry" >> "$GITHUB_STEP_SUMMARY"
+          echo "[PENDING] Hardware boot" >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve source, exact binary hashes and errors
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,6 +111,10 @@ jobs:
           path: |
             /tmp/mondrian-m11a/
             /tmp/mondrian-multimedia/
+            /tmp/mondrian-dtbo/dtbo.img
+            /tmp/mondrian-dtbo/mondrian.dtbo
+            /tmp/mondrian-dtbo/dtbs/
+            /tmp/mondrian-dtbo/mondrian-dtbo-build.json
             /tmp/mondrian-camera-platform/images/*.dtbo
             /tmp/mondrian-camera-platform/mondrian-camera-platform.preprocessed.dts
             /tmp/mondrian-camera-platform/mondrian-camera-board.preprocessed.dts
