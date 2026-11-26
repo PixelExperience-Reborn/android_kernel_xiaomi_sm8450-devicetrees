@@ -126,7 +126,7 @@ class XiaomiStockDtboTests(unittest.TestCase):
                              f"Unreviewed Xiaomi LHBM commands added: {panel_dts}")
         # The OEM seven-file board source lock remains immutable.
         board_lock = json.loads((ROOT / "oem-source-lock.json").read_text())
-        self.assertEqual(len(board_lock["original_git_blobs"]), 10)
+        self.assertEqual(len(board_lock["original_git_blobs"]), 14)
 
 
 if __name__ == "__main__":

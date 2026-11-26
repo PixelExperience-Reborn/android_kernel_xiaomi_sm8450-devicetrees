@@ -34,6 +34,18 @@ def run(args, *, stdout=None):
 
 
 
+def preprocessed_sources(preprocessed, stage):
+    """Stage-relative files that cpp read, from its line markers."""
+    used = set()
+    for match in re.finditer(r'^# \d+ "([^"]+)"', preprocessed.read_text(errors="replace"), re.M):
+        path = Path(match.group(1))
+        try:
+            used.add(str(path.resolve().relative_to(stage.resolve())))
+        except ValueError:
+            continue
+    return used
+
+
 def canonicalize_generated_overlay_fdt(merged, canonical):
     """Round-trip only a disposable *compiled* FDT for strict PMIC inspection.
 
@@ -118,14 +130,19 @@ def main():
         cmd.append(src)
         with preprocessed.open("wb") as output:
             run(cmd, stdout=output)
+        used_sources.update(preprocessed_sources(preprocessed, stage))
         result = dest / (name + (".dtbo" if overlay else ".dtb"))
         run(["dtc", "-@", "-I", "dts", "-O", "dtb", "-o", result, preprocessed])
         if result.stat().st_size < 100:
             raise RuntimeError(f"Invalid DT binary: {result}")
         return result
 
+    used_sources = set()
     bases = [compile_one(name, False) for name in BASES]
     overlay = compile_one(BOARD, True)
+    unused = sorted(set(lock["original_git_blobs"]) - used_sources)
+    if unused:
+        raise RuntimeError(f"Pinned OEM sources not used by the build: {unused}")
     overlay_model = subprocess.check_output(
         ["fdtget", "-t", "s", str(overlay), "/", "model"], text=True
     ).strip()
